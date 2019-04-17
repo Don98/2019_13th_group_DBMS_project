@@ -1,14 +1,14 @@
 # 2019_13th_group_DBMS_project
 It is the repository for 13th group to store their data
 
-##我在这里增加一些GitHub的使用提示，虽然不是很详细，但是胜在比较简便
+## 我在这里增加一些GitHub的使用提示，虽然不是很详细，但是胜在比较简便
 
-##**1、安装**
+## **1、安装**
 GitHub方便大家协作完成项目，首先需要在本地安装git才可以使用。可以从[这里](https://git-scm.com/downloads)进行下载,选择自己合适的版本进行下载。他有命令行版本和GUI版本，但是推荐大家使用命令行版本，同时这里也只是对命令行版本进行介绍（GUI版本一打开基本就知道怎么使用了。）
 
 在Linux下可以直接使用命令sudo apt install git进行下载
 
-##**2、配置账户**
+## **2、配置账户**
 
 第一步是本地生成ssh key，使用命令
 
@@ -28,7 +28,8 @@ GitHub方便大家协作完成项目，首先需要在本地安装git才可以�
 	git config --global user.email "你的邮箱"
 到这一步基本就配置差不多了。
 
-##**3、使用GitHub**
+## **3、使用GitHub**
+
 这里提供一些简单的GitHub使用指令，虽然不是非常的全面但是已经足够完成作业的使用了，如果在后期感觉有所欠缺可以后续自己谷歌。
 
 首先是clone一个仓库
