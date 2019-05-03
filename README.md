@@ -14,19 +14,23 @@ GitHub方便大家协作完成项目，首先需要在本地安装git才可以�
 
 	ssh-keygen -t rsa -C "你的邮件地址"
 
-在浏览器中登录GitHub的setting中添加ssh key，可以通过命令
-
-	ssh -T 你的@github.com
-
-进行查看是否配置成功，如果失败则使用
-
-	ssh -add
+在浏览器中登录GitHub的setting中添加ssh key，把key.pub的内容复制到key里面。
 
 然后配置Git配置文件
 
 	git config --global user.name "你的用户名"
-	git config --global user.email "你的邮箱"
-到这一步基本就配置差不多了。
+	git config --global user.email "你的邮箱
+
+接下来是配置在本地避免输入账号密码： 
+	cd ~ 
+	touch .git-credentials 
+	vim .git-credentials 
+	https://{username}:{password}@github.com
+
+在终端下输入： 
+	git config –global credential.helper store
+
+然后在配置成功后就可以直接使用了。
 
 ## **3、使用GitHub**
 
