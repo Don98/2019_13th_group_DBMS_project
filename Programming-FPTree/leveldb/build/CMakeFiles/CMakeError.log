@@ -1,0 +1,243 @@
+Determining if the function crc32c_value exists in the crc32c failed with the following output:
+Change Dir: /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_2da4a/fast"
+/usr/bin/make -f CMakeFiles/cmTC_2da4a.dir/build.make CMakeFiles/cmTC_2da4a.dir/build
+make[1]: 进入目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Building C object CMakeFiles/cmTC_2da4a.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=crc32c_value   -std=c11 -o CMakeFiles/cmTC_2da4a.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_2da4a
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2da4a.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=crc32c_value    CMakeFiles/cmTC_2da4a.dir/CheckFunctionExists.c.o  -o cmTC_2da4a -lcrc32c 
+/usr/bin/ld: 找不到 -lcrc32c
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_2da4a.dir/build.make:97: recipe for target 'cmTC_2da4a' failed
+make[1]: *** [cmTC_2da4a] Error 1
+make[1]: 离开目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Makefile:126: recipe for target 'cmTC_2da4a/fast' failed
+make: *** [cmTC_2da4a/fast] Error 2
+
+
+Determining if the function snappy_compress exists in the snappy failed with the following output:
+Change Dir: /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_8e2f4/fast"
+/usr/bin/make -f CMakeFiles/cmTC_8e2f4.dir/build.make CMakeFiles/cmTC_8e2f4.dir/build
+make[1]: 进入目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Building C object CMakeFiles/cmTC_8e2f4.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=snappy_compress   -std=c11 -o CMakeFiles/cmTC_8e2f4.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_8e2f4
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8e2f4.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=snappy_compress    CMakeFiles/cmTC_8e2f4.dir/CheckFunctionExists.c.o  -o cmTC_8e2f4 -lsnappy 
+/usr/bin/ld: 找不到 -lsnappy
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_8e2f4.dir/build.make:97: recipe for target 'cmTC_8e2f4' failed
+make[1]: *** [cmTC_8e2f4] Error 1
+make[1]: 离开目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Makefile:126: recipe for target 'cmTC_8e2f4/fast' failed
+make: *** [cmTC_8e2f4/fast] Error 2
+
+
+Determining if the function malloc exists in the tcmalloc failed with the following output:
+Change Dir: /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_f1c6a/fast"
+/usr/bin/make -f CMakeFiles/cmTC_f1c6a.dir/build.make CMakeFiles/cmTC_f1c6a.dir/build
+make[1]: 进入目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Building C object CMakeFiles/cmTC_f1c6a.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=malloc   -std=c11 -o CMakeFiles/cmTC_f1c6a.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+<command-line>:0:23: warning: conflicting types for built-in function ‘malloc’ [-Wbuiltin-declaration-mismatch]
+/usr/share/cmake-3.10/Modules/CheckFunctionExists.c:7:3: note: in expansion of macro ‘CHECK_FUNCTION_EXISTS’
+   CHECK_FUNCTION_EXISTS(void);
+   ^~~~~~~~~~~~~~~~~~~~~
+Linking C executable cmTC_f1c6a
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f1c6a.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=malloc    CMakeFiles/cmTC_f1c6a.dir/CheckFunctionExists.c.o  -o cmTC_f1c6a -ltcmalloc 
+/usr/bin/ld: 找不到 -ltcmalloc
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_f1c6a.dir/build.make:97: recipe for target 'cmTC_f1c6a' failed
+make[1]: *** [cmTC_f1c6a] Error 1
+make[1]: 离开目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Makefile:126: recipe for target 'cmTC_f1c6a/fast' failed
+make: *** [cmTC_f1c6a/fast] Error 2
+
+
+Determining if the F_FULLFSYNC exist failed with the following output:
+Change Dir: /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_eaf64/fast"
+/usr/bin/make -f CMakeFiles/cmTC_eaf64.dir/build.make CMakeFiles/cmTC_eaf64.dir/build
+make[1]: 进入目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Building CXX object CMakeFiles/cmTC_eaf64.dir/CheckSymbolExists.cxx.o
+/usr/bin/c++    -std=c++11 -o CMakeFiles/cmTC_eaf64.dir/CheckSymbolExists.cxx.o -c /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx
+/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx: In function ‘int main(int, char**)’:
+/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:8:19: error: ‘F_FULLFSYNC’ was not declared in this scope
+   return ((int*)(&F_FULLFSYNC))[argc];
+                   ^~~~~~~~~~~
+/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:8:19: note: suggested alternative: ‘O_FSYNC’
+   return ((int*)(&F_FULLFSYNC))[argc];
+                   ^~~~~~~~~~~
+                   O_FSYNC
+CMakeFiles/cmTC_eaf64.dir/build.make:65: recipe for target 'CMakeFiles/cmTC_eaf64.dir/CheckSymbolExists.cxx.o' failed
+make[1]: *** [CMakeFiles/cmTC_eaf64.dir/CheckSymbolExists.cxx.o] Error 1
+make[1]: 离开目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Makefile:126: recipe for target 'cmTC_eaf64/fast' failed
+make: *** [cmTC_eaf64/fast] Error 2
+
+File /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:
+/* */
+#include <fcntl.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef F_FULLFSYNC
+  return ((int*)(&F_FULLFSYNC))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Performing C++ SOURCE FILE Test HAVE_CLANG_THREAD_SAFETY failed with the following output:
+Change Dir: /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_c36f5/fast"
+/usr/bin/make -f CMakeFiles/cmTC_c36f5.dir/build.make CMakeFiles/cmTC_c36f5.dir/build
+make[1]: 进入目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Building CXX object CMakeFiles/cmTC_c36f5.dir/src.cxx.o
+/usr/bin/c++    -DHAVE_CLANG_THREAD_SAFETY -Werror   -std=c++11 -o CMakeFiles/cmTC_c36f5.dir/src.cxx.o -c /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/src.cxx
+/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/src.cxx:2:34: error: ‘lockable’ attribute directive ignored [-Werror=attributes]
+ struct __attribute__((lockable)) Lock {
+                                  ^~~~
+/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/src.cxx:3:59: error: ‘exclusive_lock_function’ attribute directive ignored [-Werror=attributes]
+   void Acquire() __attribute__((exclusive_lock_function()));
+                                                           ^
+/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/src.cxx:4:51: error: ‘unlock_function’ attribute directive ignored [-Werror=attributes]
+   void Release() __attribute__((unlock_function()));
+                                                   ^
+/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/src.cxx:8:46: error: ‘guarded_by’ attribute directive ignored [-Werror=attributes]
+   int data_ __attribute__((guarded_by(lock_)));
+                                              ^
+cc1plus: all warnings being treated as errors
+CMakeFiles/cmTC_c36f5.dir/build.make:65: recipe for target 'CMakeFiles/cmTC_c36f5.dir/src.cxx.o' failed
+make[1]: *** [CMakeFiles/cmTC_c36f5.dir/src.cxx.o] Error 1
+make[1]: 离开目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Makefile:126: recipe for target 'cmTC_c36f5/fast' failed
+make: *** [cmTC_c36f5/fast] Error 2
+
+Source file was:
+
+struct __attribute__((lockable)) Lock {
+  void Acquire() __attribute__((exclusive_lock_function()));
+  void Release() __attribute__((unlock_function()));
+};
+struct ThreadSafeType {
+  Lock lock_;
+  int data_ __attribute__((guarded_by(lock_)));
+};
+int main() { return 0; }
+
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_75ec7/fast"
+/usr/bin/make -f CMakeFiles/cmTC_75ec7.dir/build.make CMakeFiles/cmTC_75ec7.dir/build
+make[1]: 进入目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Building C object CMakeFiles/cmTC_75ec7.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -std=c11 -o CMakeFiles/cmTC_75ec7.dir/CheckSymbolExists.c.o   -c /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_75ec7
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_75ec7.dir/link.txt --verbose=1
+/usr/bin/cc      CMakeFiles/cmTC_75ec7.dir/CheckSymbolExists.c.o  -o cmTC_75ec7 
+CMakeFiles/cmTC_75ec7.dir/CheckSymbolExists.c.o：在函数‘main’中：
+CheckSymbolExists.c:(.text+0x1b)：对‘pthread_create’未定义的引用
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_75ec7.dir/build.make:97: recipe for target 'cmTC_75ec7' failed
+make[1]: *** [cmTC_75ec7] Error 1
+make[1]: 离开目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Makefile:126: recipe for target 'cmTC_75ec7/fast' failed
+make: *** [cmTC_75ec7/fast] Error 2
+
+File /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_bbe11/fast"
+/usr/bin/make -f CMakeFiles/cmTC_bbe11.dir/build.make CMakeFiles/cmTC_bbe11.dir/build
+make[1]: 进入目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Building C object CMakeFiles/cmTC_bbe11.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -std=c11 -o CMakeFiles/cmTC_bbe11.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_bbe11
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_bbe11.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_bbe11.dir/CheckFunctionExists.c.o  -o cmTC_bbe11 -lpthreads 
+/usr/bin/ld: 找不到 -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_bbe11.dir/build.make:97: recipe for target 'cmTC_bbe11' failed
+make[1]: *** [cmTC_bbe11] Error 1
+make[1]: 离开目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Makefile:126: recipe for target 'cmTC_bbe11/fast' failed
+make: *** [cmTC_bbe11/fast] Error 2
+
+
+Determining if the function sqlite3_open exists in the sqlite3 failed with the following output:
+Change Dir: /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_c7bd0/fast"
+/usr/bin/make -f CMakeFiles/cmTC_c7bd0.dir/build.make CMakeFiles/cmTC_c7bd0.dir/build
+make[1]: 进入目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Building C object CMakeFiles/cmTC_c7bd0.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=sqlite3_open   -std=c11 -o CMakeFiles/cmTC_c7bd0.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_c7bd0
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c7bd0.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=sqlite3_open    CMakeFiles/cmTC_c7bd0.dir/CheckFunctionExists.c.o  -o cmTC_c7bd0 -lsqlite3 
+/usr/bin/ld: 找不到 -lsqlite3
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_c7bd0.dir/build.make:97: recipe for target 'cmTC_c7bd0' failed
+make[1]: *** [cmTC_c7bd0] Error 1
+make[1]: 离开目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Makefile:126: recipe for target 'cmTC_c7bd0/fast' failed
+make: *** [cmTC_c7bd0/fast] Error 2
+
+
+Performing C++ SOURCE FILE Test HAVE_KYOTOCABINET failed with the following output:
+Change Dir: /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_81971/fast"
+/usr/bin/make -f CMakeFiles/cmTC_81971.dir/build.make CMakeFiles/cmTC_81971.dir/build
+make[1]: 进入目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Building CXX object CMakeFiles/cmTC_81971.dir/src.cxx.o
+/usr/bin/c++    -DHAVE_KYOTOCABINET   -std=c++11 -o CMakeFiles/cmTC_81971.dir/src.cxx.o -c /home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/src.cxx
+/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp/src.cxx:2:10: fatal error: kcpolydb.h: 没有那个文件或目录
+ #include <kcpolydb.h>
+          ^~~~~~~~~~~~
+compilation terminated.
+CMakeFiles/cmTC_81971.dir/build.make:65: recipe for target 'CMakeFiles/cmTC_81971.dir/src.cxx.o' failed
+make[1]: *** [CMakeFiles/cmTC_81971.dir/src.cxx.o] Error 1
+make[1]: 离开目录“/home/phc/Desktop/leveldb/build/CMakeFiles/CMakeTmp”
+Makefile:126: recipe for target 'cmTC_81971/fast' failed
+make: *** [cmTC_81971/fast] Error 2
+
+Source file was:
+
+#include <kcpolydb.h>
+
+int main() {
+  kyotocabinet::TreeDB* db = new kyotocabinet::TreeDB();
+  delete db;
+  return 0;
+}
+  
