@@ -24,6 +24,10 @@ PALLOCATOR = pallocator.o
 
 CLHASH = clhash.o
 
+LEVELDB_HEADER_DIR = ../leveldb/include
+
+LEVELDB_LIB = ../leveldb/build/libleveldb.a
+
 ALL := $(LYCSB) $(YCSB) $(MAIN) $(FPTREE) $(UTILITY) $(PALLOCATOR) $(CLHASH)
 
 #============================TODO: all below============================
@@ -41,7 +45,14 @@ $(CLHASH) : clhash.c $(HEADER_DIR)/utility/clhash.h
 $(BIN):
 	mkdir -p bin
 
+$(LYCSB): lycsb.cpp
+	$(CXX) $(CXXFLAGS) -I $(HEADER_DIR) -I $(LEVELDB_HEADER_DIR) lycsb.cpp $(LEVELDB_LIB) -lpthread -o $@
+
 all : $(ALL)
+
+lycsbTest: $(BIN) $(LYCSB)
+	@rm -rf /tmp/testdb
+	@$(LYCSB)
 
 clean :
 	rm -rf *.o ./bin/* ../data/*
