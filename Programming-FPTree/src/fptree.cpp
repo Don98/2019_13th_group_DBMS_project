@@ -1,4 +1,4 @@
-#include"../include/fptree/fptree.h"
+#include "fptree/fptree.h"
 
 using namespace std;
 

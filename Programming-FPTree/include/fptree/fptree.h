@@ -22,14 +22,14 @@ protected:
     FPTree* tree;     // the tree that the node belongs to
     int     degree;   // the degree of the node
     bool    isLeaf;   // judge whether the node is leaf
-    bool    isEmpty;  // judge whether the node is empty  //thanos
+    // bool    isEmpty;  // judge whether the node is empty  //thanos
 public:
     virtual ~Node() {}
 
     FPTree* getTree() { return tree; }
 
     bool    ifLeaf() { return isLeaf; }
-    bool    ifEmpty() { return ifEmpty; }
+    // bool    ifEmpty() { return ifEmpty; }
     virtual KeyNode* insert(const Key& k, const Value& v) = 0;
     virtual KeyNode* split() = 0;
     virtual bool remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete) = 0;
