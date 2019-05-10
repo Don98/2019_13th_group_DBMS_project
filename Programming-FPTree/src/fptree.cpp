@@ -86,14 +86,16 @@ void InnerNode::insertNonFull(const Key& k, Node* const& node) { //thanos
 KeyNode* InnerNode::insert(const Key& k, const Value& v) {   
     KeyNode* newChild = NULL;
 
-    // 1.insertion to the first leaf(only one leaf)
     if (this->isRoot && this->nKeys == 0) { 
         this->keys[nKeys++] = k;
         LeafNode * temp_node = new LeafNode(this->tree);
         this->childrens[nChild++] = temp_node;
-        newChild->node = this;
+        LeafNode * temp_node1 = new LeafNode(this->tree);
+        this->childrens[nChild++] = temp_node1;
+        ((LeafNode*)(this->childrens[0]))->insertNonFull(k,v);
         return newChild;
     }
+
     InnerNode *tmp = this;
     int pos = tmp->findIndex(k);
     //Node * tmpChild = tmp->childrens[pos];
@@ -254,8 +256,8 @@ Value InnerNode::find(const Key& k) {
 
 // get the children node of this InnerNode
 Node* InnerNode::getChild(const int& idx) {
-    // TODO
-    return NULL;
+    
+    return this->childrens[idx];
 }
 
 // get the key of this InnerNode
@@ -335,7 +337,8 @@ LeafNode::LeafNode(FPTree* t) { //thanos
     this->bitmap = new Byte [bitmapSize];
     // for(int i = 0;i < 2*this->degree;i++) bitmap[i] = 0;
     this->pNext = NULL;
-    this->fingerprints = new Byte[bitmapSize] ; //iron man
+    this->fingerprints = new Byte[bitmapSize] ;
+    this->kv = new KeyValue [bitmapSize] ;
 
     this->n = 0;
     this->prev = NULL;
@@ -344,7 +347,7 @@ LeafNode::LeafNode(FPTree* t) { //thanos
     this->pPointer = pp;
     this->filePath = DATA_DIR + to_string(pp.fileId);
 
-    // TODO
+    // return this;
 }
 
 // reload the leaf with the specific Persistent Pointer
@@ -355,6 +358,8 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
     this->isLeaf = true;
 
     PAllocator* pa = PAllocator::getAllocator();
+
+    printf("777 %d %d \n",p.fileId,p.offset);
 
     this->pmem_addr = pa->getLeafPmemAddr(p);
     this->bitmapSize = (LEAF_DEGREE * 2 +7) / 8; 
@@ -379,6 +384,7 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
 
     this->pPointer = p;
     this->filePath = DATA_DIR + to_string(p.fileId); 
+    // return *this;
 }
 
 LeafNode::~LeafNode() {
@@ -411,18 +417,31 @@ void LeafNode::insertNonFull(const Key& k, const Value& v) {
     Byte *t;
     Byte *t1 = fingerprints;
     int offset;
-    for(int i = 0;i < n;i++)
+    if(n == 0)
     {
-        t = bitmap + i;
-        if(*t == 0)
+        t = bitmap;
+        *t = 1;
+        // printf("789 %d\n", this->getBit(0));
+        *t1 = keyHash(k);
+        kv[0].k = k;
+        kv[0].v = v;
+        n += 1;
+    }
+    else
+    {
+        for(int i = 0;i < n;i++)
         {
-            *t = 1;
-            t1 += i;
-            *t1 = keyHash(k);
-            kv[i].k = k;
-            kv[i].v = v;
-            n += 1;
-            break;
+            t = bitmap + i;
+            if(*t == 0)
+            {
+                *t = 1;
+                t1 += i;
+                *t1 = keyHash(k);
+                kv[i].k = k;
+                kv[i].v = v;
+                n += 1;
+                break;
+            }
         }
     }
 }
@@ -522,8 +541,19 @@ bool LeafNode::update(const Key& k, const Value& v) {
 
 // if the entry can not be found, return the max Value
 Value LeafNode::find(const Key& k) {
-    // TODO
-    return MAX_VALUE;
+    for(int i = 0;i < this->bitmapSize;i++)
+    {
+        Byte * t = bitmap + i;
+        if(*t == 1)
+        {
+            Byte *t1 = this->fingerprints + i;
+            if(keyHash(k) == *t1)
+            {
+                return this->kv[i].v;
+            }
+        }
+    }
+    return NULL;
 }
 
 // find the first empty slot
