@@ -54,7 +54,11 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 
 BIN = bin
 
+USER_LIB = lib
+
 USER_HEADERS = ../include/*.h
+
+
 
 all : $(GTEST_LIBS) $(TESTS)
 
@@ -91,31 +95,35 @@ libgtest_main.a : gtest-all.o gtest_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
 # ===============================TODO: all below=================================
+$(BIN):
+	mkdir -p bin
+$(USER_DIR)
+	mkdir -p lib
+
 fptree.o : $(USER_DIR)/fptree.cpp $(USER_HEADER_DIR)/fptree/fptree.h
-	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/fptree.cpp -I $(USER_HEADER_DIR) -o $@
+	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/fptree.cpp -I $(USER_HEADER_DIR) -o $(USER_LIB)/$@
 	
 utility.o : $(USER_DIR)/utility.cpp $(USER_HEADER_DIR)/utility/utility.h $(USER_HEADER_DIR)/utility/clhash.h
-	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/utility.cpp -I $(USER_HEADER_DIR) -o $@
+	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/utility.cpp -I $(USER_HEADER_DIR) -o $(USER_LIB)/$@
 
 p_allocator.o : $(USER_DIR)/p_allocator.cpp $(USER_HEADER_DIR)/utility/p_allocator.h
-	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/p_allocator.cpp -I $(USER_HEADER_DIR) -o $@
+	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/p_allocator.cpp -I $(USER_HEADER_DIR) $(USER_LIB)/$@
 
 clhash.o : $(USER_DIR)/clhash.c $(USER_HEADER_DIR)/utility/clhash.h
 	$(CC) $(CFLAGS) -c $(USER_DIR)/clhash.c -I $(USER_HEADER_DIR)
 
 # utility test
 $(UTILITY_TEST) : utility.o p_allocator.o clhash.o utility_test.o
-	$(CXX) $(CPPFLAGS) -L. -lgtest -lgtest_main $(CXXFLAGS) $^ -lpmem -o $@
+	$(CXX) $(CPPFLAGS) -L. -lgtest -lgtest_main $(CXXFLAGS) $^ -lpmem -o $(USER_LIB)/$@
 
 utility_test.o : utility_test.cpp $(USER_HEADER_DIR)/utility/p_allocator.h
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c utility_test.cpp -I $(USER_HEADER_DIR) -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c utility_test.cpp -I $(USER_HEADER_DIR) -o $(USER_LIB)/$@
 
 # fptree test
 $(FPTREE_TEST) : fptree.o p_allocator.o clhash.o fptree_test.o
-	$(CXX) $(CPPFLAGS) -L. -lgtest -lgtest_main $(CXXFLAGS) $^ -lpmem -o $@
+	$(CXX) $(CPPFLAGS) -L. -lgtest -lgtest_main $(CXXFLAGS) $^ -lpmem -o $(USER_LIB)/$@
 	
 fptree_test.o : fptree_test.cpp $(USER_HEADER_DIR)/fptree/fptree.h
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c fptree_test.cpp -I $(USER_HEADER_DIR) -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c fptree_test.cpp -I $(USER_HEADER_DIR) -o $(USER_LIB)/$@
 
-$(BIN):
-	mkdir -p bin
+
