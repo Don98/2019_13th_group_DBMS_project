@@ -74,7 +74,7 @@ int InnerNode::findIndex(const Key& k) {   //thanos
 // ======================
 // WARNING: can not insert when it has no entry
 void InnerNode::insertNonFull(const Key& k, Node* const& node) { //thanos
-    if(node == NULL || node->ifEmpty()) printf("can not insert when it has no entry\n");
+    if(node == NULL || ((InnerNode*)node)->nKeys == 0) printf("can not insert when it has no entry\n");
     this->keys[nKeys] = k;
     this->childrens[nChild] = node;
     this->nKeys ++;
@@ -91,7 +91,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         this->keys[nKeys++] = k;
         LeafNode * temp_node = new LeafNode(this->tree);
         this->childrens[nChild++] = temp_node;
-        newChild->node = &this;
+        newChild->node = this;
         return newChild;
     }
     InnerNode *tmp = this;
@@ -102,7 +102,8 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         if(tmp->ifLeaf())
         {
             KeyNode * newChild1 = tmp->insert(k,v);
-            this->childrens[nChild++] = newChild1;
+            this->keys[nKeys] = newChild1->key;
+            this->childrens[nChild++] = newChild1->node;
             this->nKeys += 1;
             if(this->nKeys  == this->degree * 2)
             {
@@ -113,7 +114,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         else
         {
             pos = tmp->findIndex(k);
-            tmp = tmp->childrens[pos];
+            tmp = (InnerNode *)(tmp->childrens[pos]);
         }
 
     }
@@ -348,9 +349,9 @@ LeafNode::LeafNode(FPTree* t) { //thanos
 
 // reload the leaf with the specific Persistent Pointer
 // need to call the PAllocator
-LeafNode::LeafNode(PPointer p, FPTree* t) { //thanos
+LeafNode::LeafNode(PPointer p, FPTree* t) {
     this->tree = t;
-    this ->degree = LEAF_DEGREE;
+    this->degree = LEAF_DEGREE;
     this->isLeaf = true;
 
     PAllocator* pa = PAllocator::getAllocator();
@@ -362,18 +363,22 @@ LeafNode::LeafNode(PPointer p, FPTree* t) { //thanos
     int bitmapCount = 0;
     for(int i = 0;i < bitmapSize;i ++) {
         curBitmap ++;
-        if(*curBitmap == 1) bitmapCount ++;
+        if(*curBitmap == 1) 
+        {
+            bitmapCount ++;
+            *(this->fingerprints + i) = keyHash(this->getKey(i));
+        }
+
     }
     this->pNext = (PPointer *) curBitmap;
-    this->fingerprints = ; //iron man
 
     this->n = bitmapCount;
+
     this->prev = NULL;
-    this->next = new LeafNode(*pNext,t); //iron man, 
+    this->next = new LeafNode(*pNext,t);
 
     this->pPointer = p;
     this->filePath = DATA_DIR + to_string(p.fileId); 
-    // TODO
 }
 
 LeafNode::~LeafNode() {
@@ -384,15 +389,12 @@ LeafNode::~LeafNode() {
 // insert an entry into the leaf, need to split it if it is full
 KeyNode* LeafNode::insert(const Key& k, const Value& v) {
     KeyNode* newChild = NULL;
-    if(!(this->nKeys < this->degree * 2))
+    if(!(this->n < this->degree * 2))
     {
         newChild = this->split();
-        newChild->next = this->next;
-        this->next = &newChild;
-        newChild->prev = &this;
 
         if(newChild->key > k)
-            newChild->insertNonFull(k,v);
+            ((LeafNode*)(newChild->node))->insertNonFull(k,v);
         else
             this->insertNonFull(k,v);
         return newChild;
@@ -428,45 +430,45 @@ void LeafNode::insertNonFull(const Key& k, const Value& v) {
 // split the leaf node
 KeyNode* LeafNode::split() {
     KeyNode* newChild = new KeyNode();
-    LeafNode tmp = new LeafNode(this->tree);
+    LeafNode* tmp = new LeafNode(this->tree);
     Key midKey = findSplitKey();
     
     Byte * t;
 
     for(int i = 0;i < this->degree * 2;i++)
     {
-        if(getKey(i) >= midKey)
+        if(this->kv[i].k >= midKey)
         {
-            tmp.kv[i] = this->getKey(i);
+            tmp->kv[i] = this->kv[i];
 
-            t = tmp.bitmap + i;
+            t = tmp->bitmap + i;
             *t = 1;
 
-            t = tmp.fingerprints + i;
+            t = tmp->fingerprints + i;
             *t = *(fingerprints + i);
             
             t  = bitmap + i;
             *t = 0;
         }
     }
-    tmp.n = n / 2;
+    tmp->n = n / 2;
     n /= 2;
-    tmp.degree = this->degree / 2;
+    tmp->degree = this->degree / 2;
     this->degree /= 2;
 
-    tmp.next = this->next;
-    tmp.prev = &this;
+    tmp->next = this->next;
+    tmp->prev = this;
 
-    this->next = &tmp;
+    this->next = tmp;
 
     newChild->key = midKey;
-    newChild->node = &tmp;
+    newChild->node = tmp;
     return newChild;
 }
 
-bool cmp(Key a , Key b)
+int cmp(const void * a , const void * b)
 {
-    return a < b;
+    return *(Key*)b - *(Key*)a;
 }
 
 // use to find a mediant key and delete entries less then middle
@@ -475,9 +477,9 @@ bool cmp(Key a , Key b)
 Key LeafNode::findSplitKey() {
     Key midKey = 0;
     Key all[100];
-    for(int i = 0;i < this->degree * 2,i++)
-        all[i] = *(kv++).k;
-    sort(all,all + this->degree * 2,cmp);
+    for(int i = 0;i < this->degree * 2;i++)
+        all[i] = (kv++)->k;
+    qsort(all,this->degree * 2,sizeof(Key),cmp);
     midKey = all[this->degree];
     return midKey;
 }
@@ -606,7 +608,7 @@ void FPTree::printTree() {
 // bulkLoading the leaf files and reload the tree
 // need to traverse leaves chain
 // if no tree is reloaded, return FALSE
-// need to call the PALlocator
+// need to call the PALlocator  
 bool FPTree::bulkLoading() {
     // TODO
     return false;
