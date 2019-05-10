@@ -36,7 +36,7 @@
 1. 第一个LeafGroup文件中bitmap的最后一个bit为1
 2. 对插入键值对而产生的叶子节点进行查找操作find(1)，返回的值为10
 
-声明一个新的叶节点l2,向l2中插入LEAF_DEGREE个键值对(i，10*i)  **LEAF_DEGREE+1<= i <=2 **LEAF_DEGREE**,并检查以下要求是否成立：
+声明一个新的叶节点l2,向l2中插入LEAF_DEGREE个键值对(i，10 *i)  ** LEAF_DEGREE+1<= i <=2 *LEAF_DEGREE**,并检查以下要求是否成立：
 
 1. 叶子节点l1被分配在LeafGroup文件的最后一个位置
 2. 叶子节点l2被分配在LeafGroup文件的倒数第二个位置
