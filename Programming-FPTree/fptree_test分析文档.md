@@ -45,6 +45,12 @@
 
 #### TEST(FPTreeTest, PersistLeaf) {}
 
+这个TEST检测的函数为:
+
+1. LeafNode::persist()
+2. leafNode::InsertNonFull()
+3. LeafNode::find()
+
 声明一个叶子节点leaf，向叶子节点中插入两个键值对(1,100),(2,100),并对叶子进行持久化操作，即leaf->persist()随后将叶子节点leaf删除，并使用LeafNode::LeafNode(PPointer,FPtree*)获取fileId=1的LeafGroup文件中最后一个叶子节点，设为t_leaf，并检查以下要求是否成立：
 
 1. 对t_leaf进行查找操作find(1)，查到的值为100
