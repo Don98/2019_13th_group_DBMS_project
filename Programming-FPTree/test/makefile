@@ -63,6 +63,8 @@ all : $(BIN) $(GTEST_LIBS) $(TESTS)
 
 clean :
 	rm -f $(GTEST_LIBS) $(TESTS) .o ../data/
+	rm -rf bin
+	rm -f ./*.o
 cleano :
 	rm -f $(GTEST_LIBS) *.o
 

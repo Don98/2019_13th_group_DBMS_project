@@ -335,10 +335,11 @@ LeafNode::LeafNode(FPTree* t) { //thanos
     this->pmem_addr = pmem_addr;
     this->bitmapSize = (LEAF_DEGREE * 2 +7) / 8;   //it's from fun calLeafSize(),but i don't know why    //iron man
     this->bitmap = new Byte [bitmapSize];
-    // for(int i = 0;i < 2*this->degree;i++) bitmap[i] = 0;
+    for(int i = 0;i < bitmapSize;i++) bitmap[i] = 0;
     this->pNext = NULL;
-    this->fingerprints = new Byte[bitmapSize] ;
-    this->kv = new KeyValue [bitmapSize] ;
+    this->fingerprints = new Byte[this->degree * 2];
+    this->kv = new KeyValue [this->degree * 2] ;
+    // for(int i = 0;i < this->degree * 2 ;i++) bitmap[i] = 0;
 
     this->n = 0;
     this->prev = NULL;
@@ -346,7 +347,7 @@ LeafNode::LeafNode(FPTree* t) { //thanos
 
     this->pPointer = pp;
     this->filePath = DATA_DIR + to_string(pp.fileId);
-
+    
     // return this;
 }
 
@@ -359,53 +360,38 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
 
     PAllocator* pa = PAllocator::getAllocator();
 
-    //printf("777 %d %d \n",p.fileId,p.offset);
+    // printf("777 %d %d \n",p.fileId,p.offset);
 
     this->pmem_addr = pa->getLeafPmemAddr(p);
+    // cout << "pmem_addr " << *((uint64_t *)pmem_addr) << endl;
+
     this->bitmapSize = (LEAF_DEGREE * 2 +7) / 8; 
     this->bitmap = (Byte *) this->pmem_addr;
-    cout << "here1\n" << endl;
-    Byte * curBitmap = this->bitmap;
-    int bitmapCount = 0;
-    for(int i = 0;i < bitmapSize;i ++) {
-        Byte bits = *(curBitmap ++);
-        int idx = 8;
-        while(bits > 0){
-            idx --;
-            if(bits % 2 == 1){
-                *(this->fingerprints + i*8+idx) = keyHash(this->getKey(i*8+idx));
-                bitmapCount ++;
-            }
-            bits /= 2;
-        }
-        // if(*curBitmap == 1) 
-        // {
-        //     bitmapCount ++;
-        //     *(this->fingerprints + i) = keyHash(this->getKey(i));
-        // }
 
+    this->pNext  = (PPointer *)(this->bitmap + bitmapSize);
+
+    this->fingerprints = (Byte *)(this->pNext + 1);
+
+    this->n = 0;
+    for(int i = 0;i < bitmapSize;i++)
+    {
+        this->n += countOneBits(*(this->bitmap + i));
     }
-    cout <<bitmapCount << "bitmapCount\n" << endl;
-    // curBitmap = this->bitmap;
-    // for(int i = 0;i < (LEAF_DEGREE * 2 +7) / 8;i++){
-    //     int bit = (int)(*(curBitmap ++));
-    //     cout << bit << endl;
-    // }
-    cout << "here2\n" << endl;
-    this->pNext = (PPointer *) curBitmap;
-
-    this->n = bitmapCount;
+    //this-> n = sizeof(fingerprints)/sizeof(Byte);
+    cout <<"n initial "<< this->n << endl;
+    
+    this->kv = (KeyValue*)(this->fingerprints + 2*LEAF_DEGREE); 
 
     this->prev = NULL;
     this->next = NULL;
 
     this->pPointer = p;
     this->filePath = DATA_DIR + to_string(p.fileId); 
-    // return *this;
+    
 }
 
 LeafNode::~LeafNode() {
-    delete this;
+    
     // TODO
 }
 
@@ -433,35 +419,28 @@ KeyNode* LeafNode::insert(const Key& k, const Value& v) {
 void LeafNode::insertNonFull(const Key& k, const Value& v) {
     Byte *t;
     Byte *t1 = fingerprints;
-    int offset;
-    if(n == 0)
-    {
-        t = bitmap;
-        *t = 128;
-        printf("789 %d\n", this->getBit(0));
+    t = bitmap;
+
+
+    
+    printf("value %d\n", v);
+
+    int pos = this->findFirstZero();
+
+    printf("pos is %d\n",pos);
+
+    if(pos != -1 && pos < this->degree * 2){
+        t += pos / 8;
+        *t |= (1 << (7 - (pos % 8)));
+
+        t1 += pos;
         *t1 = keyHash(k);
-        kv[0].k = k;
-        kv[0].v = v;
+        kv[pos].k = k;
+        kv[pos].v = v;
         n += 1;
+        this->persist();
     }
-    else
-    {
-        for(int i = 0;i < n;i++)
-        {
-            t = bitmap + i;
-            if(*t == 0)
-            {
-                *t = 1;
-                t1 += i;
-                *t1 = keyHash(k);
-                kv[i].k = k;
-                kv[i].v = v;
-                n += 1;
-                break;
-            }
-        }
-    }
-    this->persist();
+
 }
 
 // split the leaf node
@@ -472,20 +451,25 @@ KeyNode* LeafNode::split() {
     
     Byte * t;
 
+    for(int i = 0;i < bitmapSize;i++)
+    {
+        *(tmp->bitmap+i) = 0;
+    }
+
     for(int i = 0;i < this->degree * 2;i++)
     {
         if(this->kv[i].k >= midKey)
         {
             tmp->kv[i] = this->kv[i];
 
-            t = tmp->bitmap + i;
-            *t = 1;
+            t = tmp->bitmap + i / 8;
+            *t |= (1 << (7 - (i % 8)));
 
             t = tmp->fingerprints + i;
             *t = *(fingerprints + i);
             
-            t  = bitmap + i;
-            *t = 0;
+            t  = bitmap + i / 8;
+            *t &= ~(1 << (7 - i % 8));
         }
     }
     tmp->n = n / 2;
@@ -527,17 +511,8 @@ Key LeafNode::findSplitKey() {
 // TIPS: bit operation
 int LeafNode::getBit(const int& idx) {
     Byte * t = this->bitmap;
-    int i = idx / 8;
-    int o = 8 - idx % 8;
-    t += i;
-    Byte tt = *t;
-    cout <<"tt :" << (int)tt << endl;
-    int result = 0;
-    while(o--){
-        result = tt % 2;
-        tt /= 2;
-    }
-    return result;
+    t += idx / 8;
+    return (((*t) & (1 << (7 - idx % 8)))) != 0;
 }
 
 Key LeafNode::getKey(const int& idx) {
@@ -583,12 +558,21 @@ Value LeafNode::find(const Key& k) {
     //         }
     //     }
     // }
-    cout << "int fun LeafNode::find()   value of n :" << n <<endl; 
+
+    cout << "insert it "<< getBit(0) << endl;
+
+    
+
     for(int i = 0;i < this->n;i ++){
+        cout <<"n "<< n << endl;
         if(getBit(i) == 1) {
+            cout << "nothing1 \n";
             Byte *t1 = this->fingerprints + i;
             if(keyHash(k) == *t1)
             {
+                cout << "nothing2 \n";
+                // printf("key == : %d\n",this->kv[i].k);
+                cout << "kv -> v " << this->kv[i].v << endl;
                 return this->kv[i].v;
             }
         }
@@ -598,28 +582,72 @@ Value LeafNode::find(const Key& k) {
 
 // find the first empty slot
 int LeafNode::findFirstZero() {
-    // TODO
+    Byte * bpt = this->bitmap;
+    for(int i = 0;i < this->bitmapSize;i++){
+        for(int j = 7; j >= 0; j--) {
+            // printf(" bpt is : %d\n",*bpt);
+            // cout << "abc  "<<((!(*bpt)) & (1 << j)) << endl;
+            // cout << "shiff " << (1 << j) << " j is "<< j << endl;
+            if((~(*bpt) & (1 << j)))
+            {
+                return i * 8 + 7 - j ;
+            }
+        }
+        bpt++;
+    }
     return -1;
 }
 
 // persist the entire leaf
 // use PMDK
 void LeafNode::persist() {
-    // char * pmemaddr;
-    // size_t mapped_len;
-    // int is_pmem;
+    char * pmemaddr;
+    size_t mapped_len;
+    int is_pmem;
 
-    // string path = DATA_DIR  +to_string(this->pPointer.fileId);
-    //     pmemaddr = (char*)pmem_map_file(path.c_str(), LEAF_GROUP_HEAD + LEAF_GROUP_AMOUNT * calLeafSize(), PMEM_FILE_CREATE,0666, &mapped_len, &is_pmem);
-    // if (is_pmem){
-    //     pmem_persist(pmemaddr, mapped_len);
-    // }      
-    // else{
-    //     pmem_msync(pmemaddr, mapped_len);
-    // }
-    PAllocator* pa = PAllocator::getAllocator();
-    pa->~PAllocator();
-    // TODO
+    string path = DATA_DIR  +to_string(this->pPointer.fileId);
+    pmemaddr = (char*)pmem_map_file(path.c_str(), LEAF_GROUP_HEAD + LEAF_GROUP_AMOUNT * calLeafSize(), 
+                                    PMEM_FILE_CREATE,0666, &mapped_len, &is_pmem);
+
+    // cout << "pmem_addr " << *((uint64_t *)pmem_addr) << endl;
+    // cout << "here\n";
+    Byte *t = (Byte *) (pmemaddr + this->pPointer.offset);
+    // cout << "here1\n";
+    // Byte * bits = (Byte *) this->bitmap;
+
+    for(int i = 0;i < bitmapSize;i++)
+    {
+        *(t++) = *(this->bitmap + i);
+        // cout << "cal num " << countOneBits(*(this->bitmap+i)) << endl;
+    }
+    // cout << "here2\n";
+    PPointer *t1 = (PPointer *)t;
+    if(this->pNext == nullptr)
+        t1 ++;
+    else  *(t1++) = *(this->pNext);
+    // cout << "here3\n";
+
+    Byte *t2 = (Byte *)t1;
+    // cout << "here3\n";
+    for(int i = 0;i < 2*LEAF_DEGREE;i++){
+        *(t2++) = *(this->fingerprints + i);
+    }
+    // cout << "here\n";
+    KeyValue * t3 = (KeyValue *)t2;
+    for(int i = 0;i < 2*LEAF_DEGREE;i++){
+        *(t3++) = this->kv[i];
+    }
+
+    if (is_pmem){
+        pmem_persist(pmemaddr, mapped_len);
+        // pmem_persist(this->pmem_addr,calLeafSize());
+    }      
+    else{
+        pmem_msync(pmemaddr, mapped_len);
+        // pmem_msync(this->pmem_addr,calLeafSize());
+    }
+    // PAllocator* pa = PAllocator::getAllocator();
+    // pa->~PAllocator();
 }
 
 // call by the ~FPTree(), delete the whole tree
