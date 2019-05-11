@@ -96,7 +96,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         else
         {
             ((LeafNode*)(this->childrens[0]))->insertNonFull(k,v);
-            if(((LeafNode*)(this->childrens[0]))->n >=  2 * degree)
+            if(((LeafNode*)(this->childrens[0]))->n >  2 * degree)
             {
                 newChild = ((LeafNode*)(this->childrens[0]))->split();
                 this->keys[this->nKeys++] = newChild->key;
@@ -105,6 +105,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         }
         return newChild;
     }
+    cout << "value " << v << endl;
     if(this->ifLeaf())
         return this->insert(k,v);
 
@@ -128,6 +129,18 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         if(this->nKeys > 2 * this->degree)
             newChild = this->split();
     }
+
+    if (isRoot && newChild != NULL) {
+        InnerNode* newRoot = new InnerNode(degree, tree, true);
+        this->isRoot = false;
+        newRoot->keys[0] = newChild->key;
+        newRoot->childrens[0] = this;
+        newRoot->childrens[1] = newChild->node;
+        tree->changeRoot((InnerNode*)newChild->node);
+        delete newChild;
+        return NULL;
+    }
+
     return newChild;
 
 
@@ -165,10 +178,12 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
 // used by the bulkLoading func
 // inserted data: | minKey of leaf | LeafNode* |
 KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) { 
+    cout << "insertLeaf1" << endl;
     KeyNode* newChild = NULL;
     // first and second leaf insertion into the tree
     if (this->isRoot && this->nKeys == 0) {
         // TODO
+        cout << "insertLeaf2" << endl;
         if (this->nChild == 0) {
             this->childrens[nChild++] = leaf.node;
         } else {
@@ -177,7 +192,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
         }
         return newChild;
     }
-    
+    cout << "insertLeaf3" << endl;
     // recursive insert
     // Tip: please judge whether this InnerNode is full
     // next level is not leaf, just insertLeaf
@@ -203,7 +218,6 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
                 newChild = this->split();
         }
     }
-
     // next level is leaf, insert to childrens array
     // TODO
 
@@ -214,7 +228,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
             newChild = split();
         }
     }
-
+    cout << "insertLeaf5" << endl;
     if (isRoot && newChild != NULL) {
         InnerNode* newRoot = new InnerNode(degree, tree, true);
         this->isRoot = false;
@@ -225,7 +239,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
         delete newChild;
         return NULL;
     }
-
+    cout << "insertLeaf6" << endl;
 
     return newChild;
 }
@@ -527,7 +541,6 @@ KeyNode* LeafNode::split() {
     {
         *(tmp->bitmap+i) = 0;
     }
-
     for(int i = 0;i < this->degree * 2;i++)
     {
         if(this->kv[i].k >= midKey)
@@ -571,9 +584,9 @@ int cmp(const void * a , const void * b)
 // qsort first then find
 Key LeafNode::findSplitKey() {
     Key midKey = 0;
-    Key all[100];
-    for(int i = 0;i < this->degree * 2;i++)
-        all[i] = (kv++)->k;
+    Key all[LEAF_DEGREE * 2];
+    for(int i = 0;i < LEAF_DEGREE * 2;i++)
+        all[i] = kv[i].k;
     qsort(all,this->degree * 2,sizeof(Key),cmp);
     midKey = all[this->degree];
     return midKey;
@@ -796,9 +809,11 @@ void FPTree::printTree() {
 bool FPTree::bulkLoading() {
     PAllocator* palloc = PAllocator::getAllocator();
     PPointer ppt = palloc->getStartPointer();
+    cout << "4567" << endl;
     if (!palloc->ifLeafUsed(ppt)) return false;
-
+    cout << "hi" << endl;
     while (palloc->ifLeafUsed(ppt)) {
+        cout << "hello" << endl;
         LeafNode* leaf = new LeafNode(ppt, this);
         Key minKey = MAX_KEY;
         Key leafKey;
