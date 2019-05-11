@@ -39,7 +39,7 @@ InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot) { //thanos
 
 // delete the InnerNode
 InnerNode::~InnerNode() {
-    delete this;
+    // delete this;
 }
 
 // binary search the first key in the innernode larger than input key
@@ -53,7 +53,7 @@ int InnerNode::findIndex(const Key& k) {   //thanos
 	int mid = (start+end) / 2;
 	
 	if(keys[0] > k) return 0;
-	if(keys[temp_end] <= k) return -1;
+	if(keys[temp_end] <= k) return temp_end + 1;
 	while(true){
 		if(keys[mid] <= k){
 			start = mid;
@@ -96,7 +96,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         else
         {
             ((LeafNode*)(this->childrens[0]))->insertNonFull(k,v);
-            if(((LeafNode*)(this->childrens[0]))->n >  2 * degree)
+            if(((LeafNode*)(this->childrens[0]))->n >=  2 * LEAF_DEGREE)
             {
                 newChild = ((LeafNode*)(this->childrens[0]))->split();
                 this->keys[this->nKeys++] = newChild->key;
@@ -105,7 +105,6 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         }
         return newChild;
     }
-    cout << "value " << v << endl;
     if(this->ifLeaf())
         return this->insert(k,v);
 
@@ -178,12 +177,9 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
 // used by the bulkLoading func
 // inserted data: | minKey of leaf | LeafNode* |
 KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) { 
-    cout << "insertLeaf1" << endl;
     KeyNode* newChild = NULL;
     // first and second leaf insertion into the tree
     if (this->isRoot && this->nKeys == 0) {
-        // TODO
-        cout << "insertLeaf2" << endl;
         if (this->nChild == 0) {
             this->childrens[nChild++] = leaf.node;
         } else {
@@ -192,7 +188,6 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
         }
         return newChild;
     }
-    cout << "insertLeaf3" << endl;
     // recursive insert
     // Tip: please judge whether this InnerNode is full
     // next level is not leaf, just insertLeaf
@@ -351,9 +346,13 @@ bool InnerNode::update(const Key& k, const Value& v) {
 
 // find the target value with the search key, return MAX_VALUE if it fails.
 Value InnerNode::find(const Key& k) {
-    // TODO
-
-    return MAX_VALUE;
+    if(((LeafNode*)this)->ifLeaf())
+        return ((LeafNode*)this)->find(k);
+    int pos = this->findIndex(k);
+    cout << "key num is " << this->getKeyNum() << endl;
+    cout << "key " << k << endl;
+    cout << "pos " << pos << endl;
+    return this->childrens[pos]->find(k);
 }
 
 // get the children node of this InnerNode
@@ -432,13 +431,13 @@ LeafNode::LeafNode(FPTree* t) { //thanos
     char * pmem_addr;
     if( !pa->getLeaf(pp,pmem_addr)) printf("get Leaf error\n");
 
-    pa->~PAllocator();
+    // pa->~PAllocator();
 
     this->pmem_addr = pmem_addr;
     this->bitmapSize = (LEAF_DEGREE * 2 +7) / 8;   //it's from fun calLeafSize(),but i don't know why    //iron man
     this->bitmap = new Byte [bitmapSize];
     for(int i = 0;i < bitmapSize;i++) bitmap[i] = 0;
-    this->pNext = NULL;
+    this->pNext = (PPointer *)(pmem_addr + bitmapSize);
     this->fingerprints = new Byte[this->degree * 2];
     this->kv = new KeyValue [this->degree * 2] ;
     // for(int i = 0;i < this->degree * 2 ;i++) bitmap[i] = 0;
@@ -565,6 +564,12 @@ KeyNode* LeafNode::split() {
     tmp->next = this->next;
     tmp->prev = this;
 
+    PPointer np = *(this->pNext);
+    *(this->pNext) = tmp->getPPointer();
+    cout << "here1 " << tmp->getPPointer().fileId << endl;
+    cout << "here2 " <<this->pNext->fileId << endl;
+    *(tmp->pNext) = np;
+    
     this->next = tmp;
     this->persist();
     tmp ->persist();
@@ -662,7 +667,7 @@ Value LeafNode::find(const Key& k) {
             }
         }
     }
-    return NULL;
+    return MAX_VALUE;
 }
 
 // find the first empty slot
@@ -809,15 +814,18 @@ void FPTree::printTree() {
 bool FPTree::bulkLoading() {
     PAllocator* palloc = PAllocator::getAllocator();
     PPointer ppt = palloc->getStartPointer();
-    cout << "4567" << endl;
-    if (!palloc->ifLeafUsed(ppt)) return false;
+    cout << "file " << ppt.fileId << " offset " << ppt.offset << endl;
+    if (!palloc->ifLeafUsed(ppt)) {
+        cout << "used false\n";
+        return false;
+    }
     cout << "hi" << endl;
     while (palloc->ifLeafUsed(ppt)) {
         cout << "hello" << endl;
         LeafNode* leaf = new LeafNode(ppt, this);
         Key minKey = MAX_KEY;
         Key leafKey;
-        for (int i = 0; i < leaf->degree * 2; ++ i) {
+        for (int i = 0; i < LEAF_DEGREE * 2; ++ i) {
             if (leaf->getBit(i)) {
                 leafKey = leaf->kv[i].k;
                 minKey = minKey <= leafKey ? minKey : leafKey;
@@ -828,5 +836,6 @@ bool FPTree::bulkLoading() {
         kn.node = leaf;
         root->insertLeaf(kn);
         ppt = *(leaf->pNext);
+        cout << "file " << ppt.fileId << " offset " << ppt.offset << endl;
     }
 }
