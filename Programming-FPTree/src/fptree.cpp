@@ -208,7 +208,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
     // TODO
 
     else {
-        childrens[nKeys++] = leaf.key;
+        keys[nKeys++] = leaf.key;
         childrens[nChild++] = leaf.node;
         if (nKeys > 2 * degree) {
             newChild = split();
@@ -216,12 +216,12 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
     }
 
     if (isRoot && newChild != NULL) {
-        newRoot = new InnerNode(degree, tree, true);
+        InnerNode* newRoot = new InnerNode(degree, tree, true);
         this->isRoot = false;
         newRoot->keys[0] = newChild->key;
         newRoot->childrens[0] = this;
         newRoot->childrens[1] = newChild->node;
-        tree->changeRoot(newChild.node);
+        tree->changeRoot((InnerNode*)newChild->node);
         delete newChild;
         return NULL;
     }
@@ -794,11 +794,11 @@ void FPTree::printTree() {
 // if no tree is reloaded, return FALSE
 // need to call the PALlocator  
 bool FPTree::bulkLoading() {
-    PALlocator* palloc = getAllocator();
+    PAllocator* palloc = PAllocator::getAllocator();
     PPointer ppt = palloc->getStartPointer();
-    if (!ifLeafUsed(ppt)) return false;
+    if (!palloc->ifLeafUsed(ppt)) return false;
 
-    while (ifLeafUsed(ppt)) {
+    while (palloc->ifLeafUsed(ppt)) {
         LeafNode* leaf = new LeafNode(ppt, this);
         Key minKey = MAX_KEY;
         Key leafKey;
