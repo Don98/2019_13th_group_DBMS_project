@@ -1,6 +1,9 @@
 # 系统说明书
+
 [一份GitHub的使用教程](./GitHub使用提示.md)
+
 # 数据库课程设计系统说明
+
 我们要实现一个键值存储系统，系统的实现参考leveldb以及FPTree。
 
 leveldb是google的一个键值存储系统，github仓库见https://github.com/google/leveldb
@@ -10,8 +13,10 @@ FPTree是Oukid提出的一种适用于SCM(Storage Class Memory)的一类新型�
 另外，我们需要实现NVM文件管理的主要对象PAllocator，对应着p_allocator.cpp，其负责分配LeafNode在NVM中的空间，映射数据文件并返回虚拟地址给LeafNode使用。其管理的叶子文件的粒度是一个LeafGroup，一个LeafGroup由多个叶子以及一个数据头组成，数据头由一个8字节的当前LeafGroup使用叶子数和叶子槽的bitmap，bitmap为了简单使用1个byte指明一个槽位。  
 
 ## FPTreeDB键值存储系统
+
 本次课程设计基于针对NVM优化的数据结构FPTree，实现一个简单的键值存储引擎FPTreeDB。我们通过将其包装成一个调用库，供用户程序使用并管理其数据存储，与LevelDB的使用方式类似。  
 其对外可用的对数据的基本操作就增删改查：
+
 1. Insert增
 2. Remove删
 3. Update改
@@ -22,12 +27,13 @@ FPTree是Oukid提出的一种适用于SCM(Storage Class Memory)的一类新型�
 我们的基本目标是实现上述5大基本操作，使系统能正常运行。系统架构如下：  
 ![FPTreeDB架构](./asset/FPTreeDB.png)
 
-
 我们预期完成：
+
 1. 单线程版本的FPTree
 2. NVM相关编程
 
 ## 项目文件说明
+
 ```
 |__gtest: 为Google Test项目目录，不用管  
 |__include: 里包含所有用到的头文件  
@@ -80,50 +86,50 @@ LeafGroup是数据文件，其文件名用整数表示，从1递增分配即可�
 
 这个函数需要完成的工作是：
 
-* 判断是否创建了catelog,freeList文件
-  * 如果创建了上述文件，则从文件中读入数据给变量赋值
-  * 如果没有创建上述文件，则创建文件，同时对变量进行初始化
-* 执行initFilePmemAddr() 
+- 判断是否创建了catelog,freeList文件
+  - 如果创建了上述文件，则从文件中读入数据给变量赋值
+  - 如果没有创建上述文件，则创建文件，同时对变量进行初始化
+- 执行initFilePmemAddr() 
 
 ##### void PAllocator::initFilePmemAddr() ;
 
 这个函数完成的工作是：
 
-* 将1~maxFileId-1的LeafGroup文件映射到虚拟地址并将每一组映射存储在fId2PmAddr中
+- 将1~maxFileId-1的LeafGroup文件映射到虚拟地址并将每一组映射存储在fId2PmAddr中
 
 ##### PAllocator::~PAllocator() ;
 
 这个函数完成的工作是：
 
-* 退出时将所有的变量作为数据写入文件中
-* 将所有变量初始化
+- 退出时将所有的变量作为数据写入文件中
+- 将所有变量初始化
 
 ##### char* PAllocator::getLeafPmemAddr(PPointer p) ;
 
 这个函数完成的工作是：
 
-* 返回fId2PmAddr对应的虚拟地址加上偏移量
+- 返回fId2PmAddr对应的虚拟地址加上偏移量
 
 ##### bool PAllocator::getLeaf(PPointer &p, char* &pmem_addr)；
 
 这个函数完成的工作是：
 
-* 判断freeNum是否为0
-  * 如果为0，调用newLeafGroup()函数
-  * 如果不为0，从freeList中分配排在最后面的空闲块并对相应变量进行更改
-* 写回磁盘
+- 判断freeNum是否为0
+  - 如果为0，调用newLeafGroup()函数
+  - 如果不为0，从freeList中分配排在最后面的空闲块并对相应变量进行更改
+- 写回磁盘
 
 ##### bool PAllocator::ifLeafUsed(PPointer p) ；
 
 这个函数完成的工作是：
 
-* 通过判断bitmap位来判断是否使用过
+- 通过判断bitmap位来判断是否使用过
 
 ##### bool PAllocator::ifLeafFree(PPointer p) ；
 
 这个函数完成的工作是：
 
-* return !ifLeafUsed(p);
+- return !ifLeafUsed(p);
 
 ##### bool PAllocator::ifLeafExist(PPointer p) ；
 
@@ -135,29 +141,146 @@ LeafGroup是数据文件，其文件名用整数表示，从1递增分配即可�
 
 这个函数完成的工作是：
 
-* 判断是否p是否存在
-  * 如果存在，设置相应的属性并将其加入freeList中，并且设置相应的变量
-    * 如果成功，返回true
-    * 否则返回false
-  * 如果不存在，返回false
+- 判断是否p是否存在
+  - 如果存在，设置相应的属性并将其加入freeList中，并且设置相应的变量
+    - 如果成功，返回true
+    - 否则返回false
+  - 如果不存在，返回false
 
 ##### bool PAllocator::persistCatalog() ;
 
 这个函数完成的工作是：
 
-* 将catelog数据写回到磁盘上
+- 将catelog数据写回到磁盘上
 
 ##### bool PAllocator::newLeafGroup() ；
 
 这个函数完成的工作是:
 
-* 分配一个新的LeafGroup并创建一个相应的文件
-* 将这个LeafGroup中的所有leaf都加入Freelist中
-* 对相关变量进行设置
+- 分配一个新的LeafGroup并创建一个相应的文件
+- 将这个LeafGroup中的所有leaf都加入Freelist中
+- 对相关变量进行设置
 
 ##### 测试结果如下：
 
 ![](./asset/test_result.png)
+
+## fptree
+
+fptree.h中共有四个类，分别是Node,InnerNode,LeafNode,FPtree
+
+其中Node是InnerNode和LeafNode的父类，同时每种Node中都有一个FPtree成员变量，标志着该Node属于哪颗树。
+
+值得注意的是叶子节点的degree是确定的--56，而中间节点的degree是实时赋值的
+
+接下来我将介绍第二阶段完成的任务：插入操作和重载操作
+
+这两个操作需要实现的函数如下：
+
+```c++
+// InnerNode构造函数
+InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot) {}
+// InnerNode析构函数
+InnerNode::~InnerNode() {}
+// 查找InnerNode中比插入键大的第一个键的位置
+int InnerNode::findIndex(const Key& k) {}
+// 节点不满直接插入，保持元素有序
+void InnerNode::insertNonFull(const Key& k, Node* const& node) {}
+// 插入操作
+KeyNode* InnerNode::insert(const Key& k, const Value& v) {}
+// 插入叶子节点
+KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {}
+// 对中间节点进行分裂
+KeyNode* InnerNode::split() {}
+// LeafNode构造函数
+LeafNode::LeafNode(FPTree* t) {}
+// LeafNode构造函数
+LeafNode::LeafNode(PPointer p, FPTree* t) {}
+// LeafNode析构函数
+LeafNode::~LeafNode() {}
+// 向叶子中插入键值对
+KeyNode* LeafNode::insert(const Key& k, const Value& v) {}
+// 向判断为未满的叶子节点中插入键值对
+void LeafNode::insertNonFull(const Key& k, const Value& v) {}
+// 叶子节点分裂(当叶子节点已经满了并且还需要插入时)
+KeyNode* LeafNode::split() {}
+// 找到叶子节点的中位键并返回
+Key LeafNode::findSplitKey() {}
+// 获取bitmap中的某一个bit
+int LeafNode::getBit(const int& idx) {}
+// 数据持久化
+void LeafNode::persist() {}
+// 重载函数
+bool FPTree::bulkLoading() {}
+// 按照键查找值（中间节点向下搜索
+Value InnerNode::find(const Key& k) {}
+// 按照键查找值（在叶子节点中搜索
+Value LeafNode::find(const Key& k) {}
+```
+
+
+
+这些函数的调用关系如下图所示：
+
+![](./picture/函数依赖.png)
+
+接下来我将介绍几个主要的函数：
+
+**InnerNode::insert()**
+
+这个函数完成的工作是：
+
+- 判断当前节点是否为根节点，以及当前节点键的数量是否为0
+  - 如果是查看孩子节点的数量是否为0
+    - 如果孩子的数量为0，新开一个叶子节点并对该叶子节点进行未满时插入操作
+    - 否则直接进行未满时插入操作。插入后如果该叶子节点满了就进行分裂
+- 对孩子节点进行递归调用insert(k,v)操作
+- 如果新孩子不为NULL，也即为分裂之后，需要进行相应的设置
+
+**InnerNode::insertNonFull()**
+
+这个函数完成的工作是：
+
+- 向当前中间节点中插入一个keyNode
+
+**InnerNode::split()**
+
+这个函数完成的工作是：
+
+- 判断当前中间节点是否为满的，如果不是报错并返回NULL值
+- 将当前节点的右半部分分配到新的节点
+- 对相关属性进行设置
+
+**LeafNode::insert()**
+
+这个函数完成的工作是：
+
+- 调用LeafNode::insertNonFull()函数插入键值对
+- 判断是否满，如果是进行分裂
+
+**LeafNode::persist()**
+
+这个函数完成的工作是：
+
+- 将当前叶子节点中的数值写回到磁盘中
+
+**LeafNode::insertNonFull()**
+
+这个函数完成的工作是：
+
+- 找到叶子节点中第一个为空的节点，即bitmap相应位置中为0的地址
+- 在找到的地址中进行键值对的插入操作
+
+**LeafNode::split()**
+
+这个函数完成的工作是：
+
+- 新开一个叶子节点
+- 将键大于中位数的所有键值对移动到新节点上
+- 对相应的属性进行设置
+
+
+
 
 
 ## 完成进度规划
@@ -170,6 +293,7 @@ LeafGroup是数据文件，其文件名用整数表示，从1递增分配即可�
 以上是基本时间规划，有时间的话会添加多线程版本和micro log的内容。
 
 ## 性能测试
+
 关于数据库的性能测试，我们使用类似于ycsb的测试框架来测试FPtree的性能，使用google test来测试数据库实现的正确性。
 
 FPTree的系统结构很类似于leveldb，我们使用ycsb测试leveldb作为例子，后期使用类似的方法用ycsb测试FPTree的性能。ycsb测试leveldb的过程见[lycsb测试leveldb](lycsb测试leveldb.md)。
@@ -177,4 +301,3 @@ FPTree的系统结构很类似于leveldb，我们使用ycsb测试leveldb作为�
 ## 完成进度
 
 阶段一已经完成
-
