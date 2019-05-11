@@ -359,28 +359,45 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
 
     PAllocator* pa = PAllocator::getAllocator();
 
-    printf("777 %d %d \n",p.fileId,p.offset);
+    //printf("777 %d %d \n",p.fileId,p.offset);
 
     this->pmem_addr = pa->getLeafPmemAddr(p);
     this->bitmapSize = (LEAF_DEGREE * 2 +7) / 8; 
     this->bitmap = (Byte *) this->pmem_addr;
+    cout << "here1\n" << endl;
     Byte * curBitmap = this->bitmap;
     int bitmapCount = 0;
     for(int i = 0;i < bitmapSize;i ++) {
-        curBitmap ++;
-        if(*curBitmap == 1) 
-        {
-            bitmapCount ++;
-            *(this->fingerprints + i) = keyHash(this->getKey(i));
+        Byte bits = *(curBitmap ++);
+        int idx = 8;
+        while(bits > 0){
+            idx --;
+            if(bits % 2 == 1){
+                *(this->fingerprints + i*8+idx) = keyHash(this->getKey(i*8+idx));
+                bitmapCount ++;
+            }
+            bits /= 2;
         }
+        // if(*curBitmap == 1) 
+        // {
+        //     bitmapCount ++;
+        //     *(this->fingerprints + i) = keyHash(this->getKey(i));
+        // }
 
     }
+    cout <<bitmapCount << "bitmapCount\n" << endl;
+    // curBitmap = this->bitmap;
+    // for(int i = 0;i < (LEAF_DEGREE * 2 +7) / 8;i++){
+    //     int bit = (int)(*(curBitmap ++));
+    //     cout << bit << endl;
+    // }
+    cout << "here2\n" << endl;
     this->pNext = (PPointer *) curBitmap;
 
     this->n = bitmapCount;
 
     this->prev = NULL;
-    this->next = new LeafNode(*pNext,t);
+    this->next = NULL;
 
     this->pPointer = p;
     this->filePath = DATA_DIR + to_string(p.fileId); 
@@ -420,8 +437,8 @@ void LeafNode::insertNonFull(const Key& k, const Value& v) {
     if(n == 0)
     {
         t = bitmap;
-        *t = 1;
-        // printf("789 %d\n", this->getBit(0));
+        *t = 128;
+        printf("789 %d\n", this->getBit(0));
         *t1 = keyHash(k);
         kv[0].k = k;
         kv[0].v = v;
@@ -444,6 +461,7 @@ void LeafNode::insertNonFull(const Key& k, const Value& v) {
             }
         }
     }
+    this->persist();
 }
 
 // split the leaf node
@@ -479,6 +497,8 @@ KeyNode* LeafNode::split() {
     tmp->prev = this;
 
     this->next = tmp;
+    this->persist();
+    tmp ->persist();
 
     newChild->key = midKey;
     newChild->node = tmp;
@@ -507,7 +527,17 @@ Key LeafNode::findSplitKey() {
 // TIPS: bit operation
 int LeafNode::getBit(const int& idx) {
     Byte * t = this->bitmap;
-    return *(t + idx);
+    int i = idx / 8;
+    int o = 8 - idx % 8;
+    t += i;
+    Byte tt = *t;
+    cout <<"tt :" << (int)tt << endl;
+    int result = 0;
+    while(o--){
+        result = tt % 2;
+        tt /= 2;
+    }
+    return result;
 }
 
 Key LeafNode::getKey(const int& idx) {
@@ -541,11 +571,21 @@ bool LeafNode::update(const Key& k, const Value& v) {
 
 // if the entry can not be found, return the max Value
 Value LeafNode::find(const Key& k) {
-    for(int i = 0;i < this->bitmapSize;i++)
-    {
-        Byte * t = bitmap + i;
-        if(*t == 1)
-        {
+    // for(int i = 0;i < this->bitmapSize;i++)
+    // {
+    //     Byte * t = bitmap + i;
+    //     if(*t == 1)
+    //     {
+    //         Byte *t1 = this->fingerprints + i;
+    //         if(keyHash(k) == *t1)
+    //         {
+    //             return this->kv[i].v;
+    //         }
+    //     }
+    // }
+    cout << "int fun LeafNode::find()   value of n :" << n <<endl; 
+    for(int i = 0;i < this->n;i ++){
+        if(getBit(i) == 1) {
             Byte *t1 = this->fingerprints + i;
             if(keyHash(k) == *t1)
             {
@@ -565,6 +605,20 @@ int LeafNode::findFirstZero() {
 // persist the entire leaf
 // use PMDK
 void LeafNode::persist() {
+    // char * pmemaddr;
+    // size_t mapped_len;
+    // int is_pmem;
+
+    // string path = DATA_DIR  +to_string(this->pPointer.fileId);
+    //     pmemaddr = (char*)pmem_map_file(path.c_str(), LEAF_GROUP_HEAD + LEAF_GROUP_AMOUNT * calLeafSize(), PMEM_FILE_CREATE,0666, &mapped_len, &is_pmem);
+    // if (is_pmem){
+    //     pmem_persist(pmemaddr, mapped_len);
+    // }      
+    // else{
+    //     pmem_msync(pmemaddr, mapped_len);
+    // }
+    PAllocator* pa = PAllocator::getAllocator();
+    pa->~PAllocator();
     // TODO
 }
 
