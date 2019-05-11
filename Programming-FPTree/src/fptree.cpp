@@ -87,39 +87,77 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     KeyNode* newChild = NULL;
 
     if (this->isRoot && this->nKeys == 0) { 
-        this->keys[nKeys++] = k;
-        LeafNode * temp_node = new LeafNode(this->tree);
-        this->childrens[nChild++] = temp_node;
-        LeafNode * temp_node1 = new LeafNode(this->tree);
-        this->childrens[nChild++] = temp_node1;
-        ((LeafNode*)(this->childrens[0]))->insertNonFull(k,v);
-        return newChild;
-    }
-
-    InnerNode *tmp = this;
-    int pos = tmp->findIndex(k);
-    //Node * tmpChild = tmp->childrens[pos];
-    while(true)
-    {
-        if(tmp->ifLeaf())
+        if(this->nChild == 0)
         {
-            KeyNode * newChild1 = tmp->insert(k,v);
-            this->keys[nKeys] = newChild1->key;
-            this->childrens[nChild++] = newChild1->node;
-            this->nKeys += 1;
-            if(this->nKeys  == this->degree * 2)
-            {
-                newChild = this->split();
-            }
-            break;
+            LeafNode * temp_node = new LeafNode(this->tree);
+            this->childrens[nChild++] = temp_node;
+            ((LeafNode*)(this->childrens[0]))->insertNonFull(k,v);
         }
         else
         {
-            pos = tmp->findIndex(k);
-            tmp = (InnerNode *)(tmp->childrens[pos]);
+            ((LeafNode*)(this->childrens[0]))->insertNonFull(k,v);
+            if(((LeafNode*)(this->childrens[0]))->n >=  2 * degree)
+            {
+                newChild = ((LeafNode*)(this->childrens[0]))->split();
+                this->keys[this->nKeys++] = newChild->key;
+                this->childrens[this->nChild++] = (LeafNode *)(newChild->node);
+            }
         }
-
+        return newChild;
     }
+    if(this->ifLeaf())
+        return this->insert(k,v);
+
+    int pos = this->findIndex(k);
+    newChild = (this->childrens[pos])->insert(k,v);
+    if(newChild != NULL)
+    {
+        pos = this->findIndex(newChild->key);
+        this->nKeys++;
+        for(int i = this->nKeys - 1; i > pos;i--)
+        {
+            this->keys[i] = this->keys[i - 1];
+        }
+        this->keys[pos] = newChild->key;
+        this->nChild++;
+        for(int i = this->nChild - 1; i > pos + 1;i--)
+        {
+            this->keys[i] = this->keys[i - 1];
+        }
+        this->childrens[pos + 1] = newChild->node;
+        if(this->nKeys > 2 * this->degree)
+            newChild = this->split();
+    }
+    return newChild;
+
+
+    //Node * tmpChild = tmp->childrens[pos];
+    // while(true)
+    // {
+    //     if(tmp->ifLeaf())
+    //     {
+    //         KeyNode * newChild1 = tmp->insert(k,v);
+
+    //         if(newChild1 == NULL)
+    //             break;
+    //         pos = this->findIndex
+
+    //         this->keys[nKeys] = newChild1->key;
+    //         this->childrens[nChild++] = newChild1->node;
+    //         this->nKeys += 1;
+    //         if(this->nKeys  == this->degree * 2)
+    //         {
+    //             newChild = this->split();
+    //         }
+    //         break;
+    //     }
+    //     else
+    //     {
+    //         pos = tmp->findIndex(k);
+    //         tmp = (InnerNode *)(tmp->childrens[pos]);
+    //     }
+
+    // }
     return newChild;
 }
 
@@ -129,56 +167,56 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
 KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) { 
     KeyNode* newChild = NULL;
     // first and second leaf insertion into the tree
-    if (this->isRoot && this->nKeys == 0) {
-        // TODO
-        if (this->nChild == 0) {
-            this->childrens[nChild++] = leaf.node;
-        } else {
-            this->childrens[nChild++] = leaf.node;
-            this->keys[nKeys++] = leaf.key;
-        }
-        return newChild;
-    }
+    // if (this->isRoot && this->nKeys == 0) {
+    //     // TODO
+    //     if (this->nChild == 0) {
+    //         this->childrens[nChild++] = leaf.node;
+    //     } else {
+    //         this->childrens[nChild++] = leaf.node;
+    //         this->keys[nKeys++] = leaf.key;
+    //     }
+    //     return newChild;
+    // }
     
-    // recursive insert
-    // Tip: please judge whether this InnerNode is full
-    // next level is not leaf, just insertLeaf
-    // TODO
+    // // recursive insert
+    // // Tip: please judge whether this InnerNode is full
+    // // next level is not leaf, just insertLeaf
+    // // TODO
 
-    if (!childrens[nChild-1]->ifLeaf())  {
-        newChild = insertLeaf(leaf);
-        if (newChild != NULL) {
-            this->childrens[nChild++] = newChild.node;
-            this->keys[nKeys++] = newChild.key;
-            if (nKeys > 2 * degree) {
-                newChild = split();
-                if (isRoot) {
-                    tree->changeRoot(newChild.node);
-                    delete newChild;
-                    return NULL;
-                }
-                else return newChild;
-            }
-            delete newChild;
-            newChild = NULL;
-        }
-    }
+    // if (!childrens[nChild-1]->ifLeaf())  {
+    //     newChild = insertLeaf(leaf);
+    //     if (newChild != NULL) {
+    //         this->childrens[nChild++] = newChild.node;
+    //         this->keys[nKeys++] = newChild.key;
+    //         if (nKeys > 2 * degree) {
+    //             newChild = split();
+    //             if (isRoot) {
+    //                 tree->changeRoot(newChild.node);
+    //                 delete newChild;
+    //                 return NULL;
+    //             }
+    //             else return newChild;
+    //         }
+    //         delete newChild;
+    //         newChild = NULL;
+    //     }
+    // }
 
-    // next level is leaf, insert to childrens array
-    // TODO
+    // // next level is leaf, insert to childrens array
+    // // TODO
 
-    else {
-        childrens[nKeys++] = leaf.key;
-        childrens[nChild++] = leaf.node;
-        if (nKeys > 2 * degree) {
-            newChild = split();
-            if (isRoot) {
-                tree->changeRoot(newChild.node);
-                delete newChild;
-                return NULL;
-            }
-        }
-    }
+    // else {
+    //     childrens[nKeys++] = leaf.key;
+    //     childrens[nChild++] = leaf.node;
+    //     if (nKeys > 2 * degree) {
+    //         newChild = split();
+    //         if (isRoot) {
+    //             tree->changeRoot(newChild.node);
+    //             delete newChild;
+    //             return NULL;
+    //         }
+    //     }
+    // }
 
 
     return newChild;
@@ -202,7 +240,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
 */
 //InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot)
 KeyNode* InnerNode::split() {
-    if(this->nKeys < 2*this->degree){
+    if(this->nKeys <= 2*this->degree ){
         printf("split innernode ERROR,not full\n");
         return NULL;
     }
@@ -211,16 +249,20 @@ KeyNode* InnerNode::split() {
     InnerNode * newNode = new InnerNode(this->degree,this->tree,false);
 
     newNode->nKeys = nKeys / 2;
-    newNode->nChild = nChild / 2 + 1;
-    for(int i = nKeys / 2;i < nKeys;i++)
+    newNode->nChild = nChild / 2;
+    for(int i = degree + 1;i <= 2 * degree;i++)
     {
-        newNode->childrens[i - nKeys / 2] = this->childrens[i];
-        newNode->keys[i - nKeys / 2] = this->keys[i];
+        newNode->childrens[i - degree - 1] = this->childrens[i];
+        newNode->keys[i - degree - 1] = this->keys[i];
     }
-    newNode->childrens[nChild / 2] = this->childrens[nChild - 1];
+    newNode->childrens[2 * degree + 1] = this->childrens[nChild - 1];
 
-    newChild->key = newNode->keys[0];
-    newChild->node = newNode;
+    newChild->key = this->keys[degree];
+
+    this->nKeys /= 2;
+    this->nChild /= 2;
+
+    newChild->node = (Node*)newNode;
     return newChild;
 }
 
@@ -416,7 +458,7 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
         this->n += countOneBits(*(this->bitmap + i));
     }
     //this-> n = sizeof(fingerprints)/sizeof(Byte);
-    cout <<"n initial "<< this->n << endl;
+    // cout <<"n initial "<< this->n << endl;
     
     this->kv = (KeyValue*)(this->fingerprints + 2*LEAF_DEGREE); 
 
@@ -436,21 +478,11 @@ LeafNode::~LeafNode() {
 // insert an entry into the leaf, need to split it if it is full
 KeyNode* LeafNode::insert(const Key& k, const Value& v) {
     KeyNode* newChild = NULL;
-    if(!(this->n < this->degree * 2))
-    {
+    
+    this->insertNonFull(k,v);
+    if(this->n >= this->degree * 2)
         newChild = this->split();
-
-        if(newChild->key > k)
-            ((LeafNode*)(newChild->node))->insertNonFull(k,v);
-        else
-            this->insertNonFull(k,v);
-        return newChild;
-    }
-    else
-    {
-        this->insertNonFull(k,v);
-        return newChild;
-    }
+    return newChild;
 }
 
 // insert into the leaf node that is assumed not full
@@ -459,13 +491,7 @@ void LeafNode::insertNonFull(const Key& k, const Value& v) {
     Byte *t1 = fingerprints;
     t = bitmap;
 
-
-    
-    printf("value %d\n", v);
-
     int pos = this->findFirstZero();
-
-    printf("pos is %d\n",pos);
 
     if(pos != -1 && pos < this->degree * 2){
         t += pos / 8;
@@ -597,20 +623,20 @@ Value LeafNode::find(const Key& k) {
     //     }
     // }
 
-    cout << "insert it "<< getBit(0) << endl;
+    // cout << "insert it "<< getBit(0) << endl;
 
     
 
     for(int i = 0;i < this->n;i ++){
-        cout <<"n "<< n << endl;
+        // cout <<"n "<< n << endl;
         if(getBit(i) == 1) {
-            cout << "nothing1 \n";
+            // cout << "nothing1 \n";
             Byte *t1 = this->fingerprints + i;
             if(keyHash(k) == *t1)
             {
-                cout << "nothing2 \n";
+                // cout << "nothing2 \n";
                 // printf("key == : %d\n",this->kv[i].k);
-                cout << "kv -> v " << this->kv[i].v << endl;
+                // cout << "kv -> v " << this->kv[i].v << endl;
                 return this->kv[i].v;
             }
         }
@@ -760,24 +786,24 @@ void FPTree::printTree() {
 // if no tree is reloaded, return FALSE
 // need to call the PALlocator  
 bool FPTree::bulkLoading() {
-    PALlocator* palloc = getAllocator();
-    PPointer ppt = palloc->getStartPointer();
-    if (!ifLeafUsed(ppt)) return false;
+    // PALlocator* palloc = getAllocator();
+    // PPointer ppt = palloc->getStartPointer();
+    // if (!ifLeafUsed(ppt)) return false;
 
-    while (ifLeafUsed(ppt)) {
-        LeafNode* leaf = new LeafNode(ppt, this);
-        Key minKey = MAX_KEY;
-        Key leafKey;
-        for (int i = 0; i < leaf->degree * 2; ++ i) {
-            if (getBit(i)) {
-                leafKey = leaf->kv[i].k;
-                minKey = minKey <= leafKey ? minKey : leafKey;
-            }
-        }
-        KeyNode kn;
-        kn.key = minKey;
-        kn.node = leaf;
-        root->insertLeaf(kn);
-        ppt = *(leaf->pNext);
-    }
+    // while (ifLeafUsed(ppt)) {
+    //     LeafNode* leaf = new LeafNode(ppt, this);
+    //     Key minKey = MAX_KEY;
+    //     Key leafKey;
+    //     for (int i = 0; i < leaf->degree * 2; ++ i) {
+    //         if (getBit(i)) {
+    //             leafKey = leaf->kv[i].k;
+    //             minKey = minKey <= leafKey ? minKey : leafKey;
+    //         }
+    //     }
+    //     KeyNode kn;
+    //     kn.key = minKey;
+    //     kn.node = leaf;
+    //     root->insertLeaf(kn);
+    //     ppt = *(leaf->pNext);
+    // }
 }
