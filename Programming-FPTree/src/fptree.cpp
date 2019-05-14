@@ -190,53 +190,217 @@ KeyNode* InnerNode::split() {
 bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete) {
     bool ifRemove = false;
     // only have one leaf
-    // TODO
+    if (this->isRoot && this->nKeys == 0) {
+        if (this->nChild > 0) {
+            ifRemove = this->childrens[0]->remove(k, 0, this, ifDelete);
+            if (ifDelete) {
+                delete this->childrens[0];
+                this->nChild--;
+            }
+        }
+        return ifRemove;
+    }
     
     // recursive remove
-    // TODO
+    int pos = this->findIndex(k);
+    ifRemove = this->childrens[pos]->remove(k, pos, this, ifDelete);
+
+    if (!ifDelete) return ifRemove;
+
+    if (this->isRoot && this->nChild == 0) {
+        this->nChild = this->nKeys + 1;
+        delete this->childrens[this->nChild];
+        return ifRemove;
+    }
+
+    delete this->childrens[pos];
+    int keyIdx = pos < nKeys ? pos : pos - 1;
+    this->removeChild(keyIdx, pos);
+
+    if (this->nKeys >= this->degree) {
+        ifDelete = false;
+    } else {
+        if (this->isRoot) return ifRemove;
+        InnerNode* leftBro = NULL;
+        InnerNode* rightBro = NULL;
+        getBrother(index, parent, leftBro, rightBro);
+        if (rightBro != NULL && rightBro->nKeys + this->nKeys >= 2 * this->degree) {
+            redistributeRight(index, rightBro, parent);
+            ifDelete = false;
+        } else if (leftBro != NULL && leftBro->nKeys + this->nKeys >= 2 * this->degree) {
+            redistributeLeft(index, leftBro, parent);
+            ifDelete = false;
+        } else {
+            ifDelete = true;
+            if (parent->isRoot && parent->nChild == 2) {
+                if (leftBro != NULL) mergeParentLeft(parent, leftBro);
+                else mergeParentRight(parent, rightBro);
+            } else {
+                if (rightBro != NULL) mergeRight(rightBro, parent->keys[index]);
+                else mergeLeft(leftBro, parent->keys[index - 1]);
+            }
+        }
+    }
+
     return ifRemove;
 }
 
 // If the leftBro and rightBro exist, the rightBro is prior to be used
 void InnerNode::getBrother(const int& index, InnerNode* const& parent, InnerNode* &leftBro, InnerNode* &rightBro) {
-    // TODO
+    if (parent == NULL || index < 0 || index >= parent->nChild) {
+        leftBro = NULL;
+        rightBro = NULL;
+        return;
+    }
+
+    if (index == 0) leftBro = NULL;
+    else leftBro = (InnerNode*) parent->childrens[index - 1];
+
+    if (index == parent->nChild - 1) rightBro = NULL;
+    else rightBro = (InnerNode*) parent->childrens[index + 1];
 }
 
 // merge this node, its parent and left brother(parent is root)
 void InnerNode::mergeParentLeft(InnerNode* const& parent, InnerNode* const& leftBro) {
-    // TODO
+    parent->keys[leftBro->nKeys] = parent->keys[0];
+    for (int i = 0; i < leftBro->nKeys; i++) {
+        parent->keys[i] = leftBro->keys[i];
+    }
+    for (int i = 0; i < this->nKeys; i++) {
+        parent->keys[i + leftBro->nKeys + 1] = this->keys[i];
+    }
+    for (int i = 0; i < leftBro->nChild; i++) {
+        parent->childrens[i] = leftBro->childrens[i];
+    }
+    for (int i = 0; i < this->nChild; i++) {
+        parent->childrens[i + leftBro->nChild] = this->childrens[i];
+    }
+    parent->nKeys = leftBro->nKeys + this->nKeys + 1;
+    parent->nChild = leftBro->nChild + this->nChild;
+    parent->childrens[parent->nChild] = this;
+    parent->nChild = 0;
+    delete leftBro;
 }
 
 // merge this node, its parent and right brother(parent is root)
 void InnerNode::mergeParentRight(InnerNode* const& parent, InnerNode* const& rightBro) {
-    // TODO
+    parent->keys[this->nKeys] = parent->keys[0];
+    for (int i = 0; i < this->nKeys; i++) {
+        parent->keys[i] = this->keys[i];
+    }
+    for (int i = 0; i < rightBro->nKeys; i++) {
+        parent->keys[i + this->nKeys + 1] = rightBro->keys[i];
+    }
+    for (int i = 0; i < this->nChild; i++) {
+        parent->childrens[i] = this->childrens[i];
+    }
+    for (int i = 0; i < rightBro->nChild; i++) {
+        parent->childrens[i + this->nChild] = rightBro->childrens[i];
+    }
+    parent->nKeys = this->nKeys + rightBro->nKeys + 1;
+    parent->nChild = this->nChild + rightBro->nChild;
+    parent->childrens[parent->nChild] = this;
+    parent->nChild = 0;
+    delete rightBro;
 }
 
 // this node and its left brother redistribute
 // the left has more entries
 void InnerNode::redistributeLeft(const int& index, InnerNode* const& leftBro, InnerNode* const& parent) {
-    // TODO
+    int moveKeys = (leftBro->nKeys + this->nKeys) / 2 - leftBro->nKeys;
+    for (int i = nKeys - 1; i >= 0; i--) {
+        this->keys[i + moveKeys] = this->keys[i];
+    }
+    for (int i = nChild - 1; i >= 0; i--) {
+        this->childrens[i + moveKeys] = this->childrens[i];
+    }
+    this->keys[moveKeys - 1] = parent->keys[index];
+    for (int i = 1; i < moveKeys; i++) {
+        this->keys[moveKeys - 1 - i] = leftBro->keys[leftBro->nKeys - i];
+    }
+    for (int i = 0; i < moveKeys; i++) {
+        this->childrens[moveKeys - i - 1] = leftBro->childrens[leftBro->nChild - 1 - i];
+    }
+    this->nKeys += moveKeys;
+    this->nChild += moveKeys;
+
+    parent->keys[index] = leftBro->keys[leftBro->nKeys - moveKeys];
+
+    leftBro->nKeys -= moveKeys;
+    leftBro->nChild -= moveKeys;
 }
 
 // this node and its right brother redistribute
 // the right has more entries
 void InnerNode::redistributeRight(const int& index, InnerNode* const& rightBro, InnerNode* const& parent) {
-    // TODO
+    int moveKeys = (this->nKeys + rightBro->nKeys) / 2 - this->nKeys;
+    this->keys[nKeys] = parent->keys[index];
+    for (int i = 1; i < moveKeys; i++) {
+        this->keys[nKeys + i] = rightBro->keys[i - 1];
+    }
+    for (int i = 0; i < moveKeys; i++) {
+        this->childrens[nChild + i] = rightBro->childrens[i];
+    }
+    this->nKeys += moveKeys;
+    this->nChild += moveKeys;
+
+    parent->keys[index] = rightBro->keys[moveKeys - 1];
+
+    for (int i = 0; i < rightBro->nKeys - moveKeys; i++) {
+        rightBro->keys[i] = rightBro->keys[i + moveKeys];
+    }
+    for (int i = 0; i < rightBro->nChild - moveKeys; i++) {
+        rightBro->childrens[i] = rightBro->childrens[i + moveKeys];
+    }
+    rightBro->nKeys -= moveKeys;
+    rightBro->nChild -= moveKeys;
 }
 
 // merge all entries to its left bro, delete this node after merging.
 void InnerNode::mergeLeft(InnerNode* const& leftBro, const Key& k) {
-    // TODO
+    leftBro->keys[leftBro->nKeys] = k;
+    for (int i = 0; i < this->nKeys; i++) {
+        leftBro->keys[leftBro->nKeys + i + 1] = this->keys[i];
+    }
+    for (int i = 0; i < this->nChild; i++) {
+        leftBro->childrens[leftBro->nChild + i] = this->childrens[i];
+    }
+    leftBro->nKeys += (this->nKeys + 1);
+    leftBro->nChild += this->nChild;
 }
 
 // merge all entries to its right bro, delete this node after merging.
 void InnerNode::mergeRight(InnerNode* const& rightBro, const Key& k) {
-    // TODO
+    for (int i = rightBro->nKeys - 1; i >= 0; i--) {
+        rightBro->keys[i + this->nKeys + 1] = rightBro->keys[i];
+    }
+    rightBro->keys[this->nKeys] = k;
+    for (int i = 0; i < this->nKeys; i++) {
+        rightBro->keys[i] = this->keys[i];
+    }
+    for (int i = rightBro->nChild - 1; i >= 0; i--) {
+        rightBro->childrens[i + this->nChild] = rightBro->childrens[i];
+    }
+    for (int i = 0; i < this->nChild; i++) {
+        rightBro->childrens[i] = this->childrens[i];
+    }
+    rightBro->nKeys += (this->nKeys + 1);
+    rightBro->nChild += this->nChild;
 }
 
 // remove a children from the current node, used by remove func
 void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
-    // TODO
+    if (keyIdx < 0 || keyIdx >= this->nKeys || childIdx < 0 || childIdx >= nChild) {
+        printf("error: in removeChild\n");
+    }
+    for (int i = keyIdx; i < nKeys - 1; i++) {
+        this->keys[i] = this->keys[i + 1];
+    }
+    this->nKeys--;
+    for (int i = childIdx; i < nChild - 1; i++) {
+        this->childrens[i] = this->childrens[i + 1];
+    }
+    this->nChild--;
 }
 
 // update the target entry, return true if the update succeed.
@@ -355,7 +519,6 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
 }
 
 LeafNode::~LeafNode() {
-    // TODO
     persist();
 }
 
@@ -446,9 +609,9 @@ Key LeafNode::findSplitKey() {
 // get the targte bit in bitmap
 // TIPS: bit operation
 int LeafNode::getBit(const int& idx) {
-    if (idx < 0 || idx >= this->degree * 2);
+    if (idx < 0 || idx >= this->degree * 2) return 0;
     Byte byte = this->bitmap[idx / 8];
-    return (byte & (1 << 7 - idx % 8)) != 0;
+    return (byte & (1 << (7 - idx % 8))) != 0;
 }
 
 Key LeafNode::getKey(const int& idx) {
@@ -468,7 +631,34 @@ PPointer LeafNode::getPPointer() {
 // need to call PAllocator to set this leaf free and reuse it
 bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete) {
     bool ifRemove = false;
-    // TODO
+    
+    Byte hash = keyHash(k);
+    int pos = -1;
+    for (int i = 0; i < this->degree * 2; ++ i) {
+        if (getBit(i)) {
+            if (hash == this->fingerprints[i]) {
+                if (k == this->kv[i].k) {
+                    pos = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (pos >= 0 && pos < 2 * this->degree) {
+        this->bitmap[pos / 8] &= ~(1 << (7 - pos % 8));
+        this->n--;
+        this->persist();
+        ifRemove = true;
+        ifDelete = false;
+        if (this->n == 0) {
+            PAllocator* palloc = PAllocator::getAllocator();
+            if (!palloc->freeLeaf(this->pPointer)) {
+                printf("error: in LeafNode::remove -> PAllocator::freeLeaf\n");
+            }
+            ifDelete = true;
+        }
+    }
     return ifRemove;
 }
 
@@ -510,7 +700,7 @@ Value LeafNode::find(const Key& k) {
 int LeafNode::findFirstZero() {
     Byte byte;
     int pos = -1;
-    for (int i = 0; i < this->bitmapSize; ++ i) {
+    for (uint64_t i = 0; i < this->bitmapSize; ++ i) {
         if (pos != -1) break;
         byte = this->bitmap[i];
         for (int j = 0; j < 8; ++ j) {

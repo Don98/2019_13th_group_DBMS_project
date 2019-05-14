@@ -178,7 +178,7 @@ bool PAllocator::freeLeaf(PPointer p) {
     char* leaf_group_pt = fId2PmAddr[p.fileId];
     uint64_t* pt = (uint64_t*) leaf_group_pt;
     (*pt)--;
-    Byte* bitmap_pt = (Byte*) (pt - 1);
+    Byte* bitmap_pt = (Byte*) (pt + 1);
     bitmap_pt[(p.offset-LEAF_GROUP_HEAD)/calLeafSize()] = 0;
 
     if (pmem_is_pmem(leaf_group_pt, LEAF_GROUP_HEAD)) {
@@ -186,7 +186,6 @@ bool PAllocator::freeLeaf(PPointer p) {
     } else {
         pmem_msync(leaf_group_pt, LEAF_GROUP_HEAD);
     }
-
     return true;
 }
 
@@ -254,4 +253,3 @@ bool PAllocator::newLeafGroup() {
 
     return true;
 }
-
