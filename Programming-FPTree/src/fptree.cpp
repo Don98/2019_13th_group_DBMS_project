@@ -1,70 +1,34 @@
-#include "fptree/fptree.h"
+#include"fptree/fptree.h"
 
 using namespace std;
 
-/*
-    friend class FPTree;
-
-    bool   isRoot;     // judge whether the node is root
-    int    nKeys;      // amount of keys
-    int    nChild;     // amount of children
-    Key*   keys;       // max (2 * d + 1) keys
-    Node** childrens;  // max (2 * d + 2) node pointers
-*/
-
-/*
-    FPTree* tree;     // the tree that the node belongs to
-    int     degree;   // the degree of the node
-    bool    isLeaf;   // judge whether the node is leaf
-    bool    isEmpty;  // judge whether the node has entry     //thanos
-*/
-
 // Initial the new InnerNode
-InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot) { //thanos
+InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot) {
+    this->degree = d;
     this->tree = t;
+    this->isLeaf = false;
     this->isRoot = _isRoot;
-    // if(_isRoot) t->changeRoot(this);
     this->nKeys = 0;
     this->nChild = 0;
-    this->keys = new Key [2*d + 1]; 
-    this->childrens = new Node * [2*d+2];
-    this->degree = d;
-    this->isLeaf = false;
-    int i;
-    for(i = 0;i < 2*d+1;i ++) keys[i] = 0;
-    for(i = 0;i < 2*d+2;i ++) childrens[i] = NULL;
-
-    //it's 2*d+1 but not 2*d because that TA want one buffer,whose size is 1
+    this->keys = new Key[2*d + 1];
+    this->childrens = new Node*[2*d + 2];
 }
 
 // delete the InnerNode
 InnerNode::~InnerNode() {
-    // delete this;
+    delete[] keys;
+    delete[] childrens;
 }
 
 // binary search the first key in the innernode larger than input key
-int InnerNode::findIndex(const Key& k) {   //thanos
-    //typedef uint64_t Key
-    //
-    //binary search the first key in the innernode larger than input key
-    int temp_end = this->getKeyNum()-1;
-    int start = 0;
-    int end = temp_end;
-	int mid = (start+end) / 2;
-	
-	if(keys[0] > k) return 0;
-	if(keys[temp_end] <= k) return temp_end + 1;
-	while(true){
-		if(keys[mid] <= k){
-			start = mid;
-			mid =  (start+end) / 2;
-		}else {
-			end = mid;
-			mid =  (start+end) / 2;
-		}
-		if(mid == start) break;
-	}
-    return end;
+int InnerNode::findIndex(const Key& k) {
+    int left = 0, right = this->nKeys - 1, mid;
+    while (left <= right) {
+        mid = (left + right) / 2;
+        if (this->keys[mid] > k) right = mid - 1;
+        else left = mid + 1;
+    }
+    return left;
 }
 
 // insert the node that is assumed not full
@@ -73,213 +37,150 @@ int InnerNode::findIndex(const Key& k) {   //thanos
 // | key | node pointer |
 // ======================
 // WARNING: can not insert when it has no entry
-void InnerNode::insertNonFull(const Key& k, Node* const& node) { //thanos
-    if(node == NULL || ((InnerNode*)node)->nKeys == 0) printf("can not insert when it has no entry\n");
-    this->keys[nKeys] = k;
-    this->childrens[nChild] = node;
-    this->nKeys ++;
-    this->nChild++;
+void InnerNode::insertNonFull(const Key& k, Node* const& node) {
+    if(node == NULL || ((InnerNode*)node)->nKeys == 0) {
+        printf("can not insert when it has no entry\n");
+        return;
+    }
+    int pos = findIndex(k);
+    for (int i = nKeys; i > pos; i--) keys[i] = keys[i - 1];
+    keys[pos] = k;
+    nKeys++;
+    for (int i = nChild; i > pos + 1; i--) childrens[i] = childrens[i - 1];
+    childrens[pos + 1] = node;
+    nChild++;
 }
 
 // insert func
 // return value is not NULL if split, returning the new child and a key to insert
-KeyNode* InnerNode::insert(const Key& k, const Value& v) {   
+KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     KeyNode* newChild = NULL;
 
-    if (this->isRoot && this->nKeys == 0) { 
-        if(this->nChild == 0)
-        {
-            LeafNode * temp_node = new LeafNode(this->tree);
-            this->childrens[nChild++] = temp_node;
-            ((LeafNode*)(this->childrens[0]))->insertNonFull(k,v);
-        }
-        else
-        {
-            ((LeafNode*)(this->childrens[0]))->insertNonFull(k,v);
-            if(((LeafNode*)(this->childrens[0]))->n >=  2 * LEAF_DEGREE)
-            {
-                newChild = ((LeafNode*)(this->childrens[0]))->split();
-                this->keys[this->nKeys++] = newChild->key;
-                this->childrens[this->nChild++] = (LeafNode *)(newChild->node);
+    // 1.insertion to the first leaf(only one leaf)
+    if (this->isRoot && this->nKeys == 0) {
+        if (this->nChild == 0) {
+            LeafNode* leaf_node = new LeafNode(this->tree);
+            leaf_node->insert(k, v);
+            this->childrens[nChild++] = leaf_node;
+        } else {
+            newChild = this->childrens[0]->insert(k, v);
+            if (newChild != NULL) {
+                this->keys[nKeys++] = newChild->key;
+                this->childrens[nChild++] = newChild->node;
+                delete newChild;
+                newChild = NULL;
             }
         }
         return newChild;
     }
-    if(this->ifLeaf())
-        return this->insert(k,v);
-
-    int pos = this->findIndex(k);
-    newChild = (this->childrens[pos])->insert(k,v);
-    if(newChild != NULL)
-    {
-        pos = this->findIndex(newChild->key);
-        this->nKeys++;
-        for(int i = this->nKeys - 1; i > pos;i--)
-        {
-            this->keys[i] = this->keys[i - 1];
-        }
-        this->keys[pos] = newChild->key;
-        this->nChild++;
-        for(int i = this->nChild - 1; i > pos + 1;i--)
-        {
-            this->keys[i] = this->keys[i - 1];
-        }
-        this->childrens[pos + 1] = newChild->node;
-        if(this->nKeys > 2 * this->degree)
-            newChild = this->split();
-    }
-
-    if (isRoot && newChild != NULL) {
-        InnerNode* newRoot = new InnerNode(degree, tree, true);
-        this->isRoot = false;
-        newRoot->keys[0] = newChild->key;
-        newRoot->childrens[0] = this;
-        newRoot->childrens[1] = newChild->node;
-        tree->changeRoot((InnerNode*)newChild->node);
+    
+    // 2.recursive insertion
+    int pos = findIndex(k);
+    newChild = this->childrens[pos]->insert(k, v);
+    if (newChild != NULL) {
+        this->insertNonFull(newChild->key, newChild->node);
         delete newChild;
-        return NULL;
+        newChild = NULL;
+        if (this->nKeys > 2 * this->degree) {
+            newChild = this->split();
+        }
     }
 
-    return newChild;
+    if (this->isRoot && newChild != NULL) {
+        InnerNode* newRoot = new InnerNode(this->degree, this->tree, true);
+        this->isRoot = false;
+        newRoot->keys[newRoot->nKeys++] = newChild->key;
+        newRoot->childrens[newRoot->nChild++] = this;
+        newRoot->childrens[newRoot->nChild++] = newChild->node;
+        tree->changeRoot(newRoot);
+        delete newChild;
+        newChild =  NULL;
+    }
 
-
-    //Node * tmpChild = tmp->childrens[pos];
-    // while(true)
-    // {
-    //     if(tmp->ifLeaf())
-    //     {
-    //         KeyNode * newChild1 = tmp->insert(k,v);
-
-    //         if(newChild1 == NULL)
-    //             break;
-    //         pos = this->findIndex
-
-    //         this->keys[nKeys] = newChild1->key;
-    //         this->childrens[nChild++] = newChild1->node;
-    //         this->nKeys += 1;
-    //         if(this->nKeys  == this->degree * 2)
-    //         {
-    //             newChild = this->split();
-    //         }
-    //         break;
-    //     }
-    //     else
-    //     {
-    //         pos = tmp->findIndex(k);
-    //         tmp = (InnerNode *)(tmp->childrens[pos]);
-    //     }
-
-    // }
     return newChild;
 }
 
 // ensure that the leaves inserted are ordered
 // used by the bulkLoading func
 // inserted data: | minKey of leaf | LeafNode* |
-KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) { 
+KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
+    // if(this->isRoot) tree->printTree();
     KeyNode* newChild = NULL;
     // first and second leaf insertion into the tree
     if (this->isRoot && this->nKeys == 0) {
         if (this->nChild == 0) {
             this->childrens[nChild++] = leaf.node;
         } else {
-            this->childrens[nChild++] = leaf.node;
             this->keys[nKeys++] = leaf.key;
+            this->childrens[nChild++] = leaf.node;
         }
         return newChild;
     }
+    
     // recursive insert
     // Tip: please judge whether this InnerNode is full
     // next level is not leaf, just insertLeaf
-    // TODO
-
-    if (!childrens[nChild-1]->ifLeaf())  {
-        newChild = insertLeaf(leaf);
+    int pos = findIndex(leaf.key);
+    if (!this->childrens[pos]->ifLeaf()) {
+        newChild = ((InnerNode*)(this->childrens[pos]))->insertLeaf(leaf);
         if (newChild != NULL) {
-            int pos = this->findIndex(newChild->key);
-            this->nKeys++;
-            for(int i = this->nKeys - 1; i > pos;i--)
-            {
-                this->keys[i] = this->keys[i - 1];
-            }
-            this->keys[pos] = newChild->key;
-            this->nChild++;
-            for(int i = this->nChild - 1; i > pos + 1;i--)
-            {
-                this->keys[i] = this->keys[i - 1];
-            }
-            this->childrens[pos + 1] = newChild->node;
-            if(this->nKeys > 2 * this->degree)
+            this->insertNonFull(newChild->key, newChild->node);
+            delete newChild;
+            newChild = NULL;
+            if (this->nKeys > 2 * this->degree) {
                 newChild = this->split();
+            }
         }
     }
-    // next level is leaf, insert to childrens array
-    // TODO
 
+    // next level is leaf, insert to childrens array
     else {
-        keys[nKeys++] = leaf.key;
-        childrens[nChild++] = leaf.node;
-        if (nKeys > 2 * degree) {
-            newChild = split();
+        this->keys[nKeys++] = leaf.key;
+        this->childrens[nChild++] = leaf.node;
+        if (nKeys > 2 * this->degree) {
+            newChild = this->split();
         }
     }
-    cout << "insertLeaf5" << endl;
-    if (isRoot && newChild != NULL) {
-        InnerNode* newRoot = new InnerNode(degree, tree, true);
+
+    if (this->isRoot && newChild != NULL) {
+        InnerNode* newRoot = new InnerNode(this->degree, this->tree, true);
         this->isRoot = false;
-        newRoot->keys[0] = newChild->key;
-        newRoot->childrens[0] = this;
-        newRoot->childrens[1] = newChild->node;
-        tree->changeRoot((InnerNode*)newChild->node);
+        newRoot->keys[newRoot->nKeys++] = newChild->key;
+        newRoot->childrens[newRoot->nChild++] = this;
+        newRoot->childrens[newRoot->nChild++] = newChild->node;
+        tree->changeRoot(newRoot);
         delete newChild;
-        return NULL;
+        newChild =  NULL;
     }
-    cout << "insertLeaf6" << endl;
 
     return newChild;
 }
 
-/*
-    friend class FPTree;
-
-    bool   isRoot;     // judge whether the node is root
-    int    nKeys;      // amount of keys
-    int    nChild;     // amount of children
-    Key*   keys;       // max (2 * d + 1) keys
-    Node** childrens;  // max (2 * d + 2) node pointers
-*/
-
-/*
-    FPTree* tree;     // the tree that the node belongs to
-    int     degree;   // the degree of the node
-    bool    isLeaf;   // judge whether the node is leaf
-    bool    isEmpty;  // judge whether the node has entry     //thanos
-*/
-//InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot)
 KeyNode* InnerNode::split() {
     if(this->nKeys <= 2*this->degree ){
-        printf("split innernode ERROR,not full\n");
+        printf("error: split innernode when not full\n");
         return NULL;
     }
-    // right half entries of old node to the new node, others to the old node. 
+
     KeyNode* newChild = new KeyNode();
+    // right half entries of old node to the new node, others to the old node. 
+
     InnerNode * newNode = new InnerNode(this->degree,this->tree,false);
 
-    newNode->nKeys = nKeys / 2;
-    newNode->nChild = nChild / 2;
-    for(int i = degree + 1;i <= 2 * degree;i++)
-    {
-        newNode->childrens[i - degree - 1] = this->childrens[i];
+    newNode->nKeys = degree;
+    newNode->nChild = degree + 1;
+    for(int i = degree + 1; i <= 2 * degree; i++) {
         newNode->keys[i - degree - 1] = this->keys[i];
+        newNode->childrens[i - degree - 1] = this->childrens[i];
     }
-    newNode->childrens[2 * degree + 1] = this->childrens[nChild - 1];
+    newNode->childrens[degree] = this->childrens[nChild - 1];
 
     newChild->key = this->keys[degree];
-
-    this->nKeys /= 2;
-    this->nChild /= 2;
-
     newChild->node = (Node*)newNode;
+
+    this->nKeys = degree;
+    this->nChild = degree + 1;
+
     return newChild;
 }
 
@@ -340,34 +241,36 @@ void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
 
 // update the target entry, return true if the update succeed.
 bool InnerNode::update(const Key& k, const Value& v) {
-    // TODO
+    int pos = findIndex(k);
+    if (this->childrens[pos] != NULL) {
+        return this->childrens[pos]->update(k, v);
+    }
     return false;
 }
 
 // find the target value with the search key, return MAX_VALUE if it fails.
 Value InnerNode::find(const Key& k) {
-    if(((LeafNode*)this)->ifLeaf())
-        return ((LeafNode*)this)->find(k);
-    int pos = this->findIndex(k);
-    cout << "key num is " << this->getKeyNum() << endl;
-    cout << "key " << k << endl;
-    cout << "pos " << pos << endl;
-    return this->childrens[pos]->find(k);
+    int pos = findIndex(k);
+    if (this->childrens[pos] != NULL) {
+        return this->childrens[pos]->find(k);
+    }
+    return MAX_VALUE;
 }
 
 // get the children node of this InnerNode
 Node* InnerNode::getChild(const int& idx) {
-    
-    return this->childrens[idx];
+    if (idx >= 0 && idx < nChild) {
+        return this->childrens[idx];
+    }
+    return NULL;
 }
 
 // get the key of this InnerNode
 Key InnerNode::getKey(const int& idx) {
-    if (idx < this->nKeys) {
+    if (idx >= 0 && idx < this->nKeys) {
         return this->keys[idx];
-    } else {
-        return MAX_KEY;
     }
+    return MAX_KEY;
 }
 
 // print the InnerNode
@@ -390,66 +293,31 @@ void LeafNode::printNode() {
     cout << "|" << " ====>> ";
 }
 
-/*
-    // the NVM relative variables
-    char*      pmem_addr;      // the pmem address of the leaf node
-
-    // the pointer below are all pmem address based on pmem_addr
-    // need to set the pointer pointed to NVM address
-    Byte*      bitmap;         // bitmap of the KV slots
-    PPointer*  pNext;          // next leafnode
-    Byte*      fingerprints;   // the fingerprint of the keys array
-    KeyValue*  kv;             // the keyValue pairs array
-
-    // the DRAM relative variables
-    int        n;              // amount of entries
-    LeafNode*  prev;           // the address of previous leafnode      
-    LeafNode*  next;           // the address of next leafnode  
-    PPointer   pPointer;        // the persistent pointer pointed to the leaf in NVM
-    string     filePath;        // the file path of the leaf
-    
-    uint64_t   bitmapSize;      // the bitmap size of the leaf(bytes)
-*/
-
-/*  FROM SUPER CLASS -- Node
-    FPTree* tree;     // the tree that the node belongs to
-    int     degree;   // the degree of the node
-    bool    isLeaf;   // judge whether the node is leaf
-    bool    isEmpty;  // judge whether the node has entry     //thanos
-*/
 // new a empty leaf and set the valuable of the LeafNode
-
-// Leaf : | bitmap | pNext | fingerprints array | KV array |
-LeafNode::LeafNode(FPTree* t) { //thanos
+LeafNode::LeafNode(FPTree* t) {
     this->tree = t;
-    this ->degree = LEAF_DEGREE;
+    this->degree = LEAF_DEGREE;
     this->isLeaf = true;
 
-    //get pmem_addr and PPointer
-    PAllocator* pa = PAllocator::getAllocator();
-    PPointer pp;
-    char * pmem_addr;
-    if( !pa->getLeaf(pp,pmem_addr)) printf("get Leaf error\n");
+    PAllocator* palloc = PAllocator::getAllocator();
+    PPointer ppt;
+    char* pmem_addr;
+    if (!palloc->getLeaf(ppt, pmem_addr)) {
+        printf("error： get leaf fail\n");
+    }
 
-    // pa->~PAllocator();
-
+    this->bitmapSize = (LEAF_DEGREE * 2 + 7) / 8;
     this->pmem_addr = pmem_addr;
-    this->bitmapSize = (LEAF_DEGREE * 2 +7) / 8;   //it's from fun calLeafSize(),but i don't know why    //iron man
-    this->bitmap = new Byte [bitmapSize];
-    for(int i = 0;i < bitmapSize;i++) bitmap[i] = 0;
-    this->pNext = (PPointer *)(pmem_addr + bitmapSize);
-    this->fingerprints = new Byte[this->degree * 2];
-    this->kv = new KeyValue [this->degree * 2] ;
-    // for(int i = 0;i < this->degree * 2 ;i++) bitmap[i] = 0;
+    this->bitmap = (Byte*) pmem_addr;
+    this->pNext = (PPointer*)(this->bitmap + bitmapSize);
+    this->fingerprints = (Byte*)(this->pNext + 1);
+    this->kv = (KeyValue*)(this->fingerprints + LEAF_DEGREE * 2);
 
     this->n = 0;
     this->prev = NULL;
     this->next = NULL;
-
-    this->pPointer = pp;
-    this->filePath = DATA_DIR + to_string(pp.fileId);
-    
-    // return this;
+    this->pPointer = ppt;
+    this->filePath = DATA_DIR + to_string(ppt.fileId);
 }
 
 // reload the leaf with the specific Persistent Pointer
@@ -459,130 +327,107 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
     this->degree = LEAF_DEGREE;
     this->isLeaf = true;
 
-    PAllocator* pa = PAllocator::getAllocator();
+    PAllocator* palloc = PAllocator::getAllocator();
 
-    // printf("777 %d %d \n",p.fileId,p.offset);
+    char* pmem_addr;
+    pmem_addr = palloc->getLeafPmemAddr(p);
+    if (pmem_addr == NULL) {
+        printf("error： build leaf fail, ppointer invalid.\n");
+    }
 
-    this->pmem_addr = pa->getLeafPmemAddr(p);
-    // cout << "pmem_addr " << *((uint64_t *)pmem_addr) << endl;
-
-    this->bitmapSize = (LEAF_DEGREE * 2 +7) / 8; 
-    this->bitmap = (Byte *) this->pmem_addr;
-
-    this->pNext  = (PPointer *)(this->bitmap + bitmapSize);
-
-    this->fingerprints = (Byte *)(this->pNext + 1);
+    this->bitmapSize = (LEAF_DEGREE * 2 + 7) / 8;
+    this->pmem_addr = pmem_addr;
+    this->bitmap = (Byte*) pmem_addr;
+    this->pNext = (PPointer*)(this->bitmap + bitmapSize);
+    this->fingerprints = (Byte*)(this->pNext + 1);
+    this->kv = (KeyValue*)(this->fingerprints + LEAF_DEGREE * 2);
 
     this->n = 0;
-    for(int i = 0;i < bitmapSize;i++)
-    {
+    for (uint64_t i = 0; i < bitmapSize; ++ i) {
         this->n += countOneBits(*(this->bitmap + i));
     }
-    //this-> n = sizeof(fingerprints)/sizeof(Byte);
-    // cout <<"n initial "<< this->n << endl;
-    
-    this->kv = (KeyValue*)(this->fingerprints + 2*LEAF_DEGREE); 
 
     this->prev = NULL;
     this->next = NULL;
-
     this->pPointer = p;
-    this->filePath = DATA_DIR + to_string(p.fileId); 
-    
+    this->filePath = DATA_DIR + to_string(p.fileId);
+
 }
 
 LeafNode::~LeafNode() {
-    
     // TODO
+    persist();
 }
 
 // insert an entry into the leaf, need to split it if it is full
 KeyNode* LeafNode::insert(const Key& k, const Value& v) {
     KeyNode* newChild = NULL;
-    
-    this->insertNonFull(k,v);
-    if(this->n >= this->degree * 2)
+    this->insertNonFull(k, v);
+    if (this->n >= this->degree * 2) {
         newChild = this->split();
+    }
     return newChild;
 }
 
 // insert into the leaf node that is assumed not full
 void LeafNode::insertNonFull(const Key& k, const Value& v) {
-    Byte *t;
-    Byte *t1 = fingerprints;
-    t = bitmap;
-
     int pos = this->findFirstZero();
-
-    if(pos != -1 && pos < this->degree * 2){
-        t += pos / 8;
-        *t |= (1 << (7 - (pos % 8)));
-
-        t1 += pos;
-        *t1 = keyHash(k);
-        kv[pos].k = k;
-        kv[pos].v = v;
-        n += 1;
-        this->persist();
+    if (pos < 0 || pos >= this->degree * 2) {
+        printf("error: insertNotFull when is full\n.");
     }
-
+    *(this->bitmap + pos / 8) |= (1 << (7 - pos % 8));
+    *(this->fingerprints + pos) = keyHash(k);
+    this->kv[pos].k = k;
+    this->kv[pos].v = v;
+    this->n++;
+    persist();
 }
 
 // split the leaf node
 KeyNode* LeafNode::split() {
     KeyNode* newChild = new KeyNode();
-    LeafNode* tmp = new LeafNode(this->tree);
+    LeafNode* newNode = new LeafNode(this->tree);
     Key midKey = findSplitKey();
-    
-    Byte * t;
 
-    for(int i = 0;i < bitmapSize;i++)
-    {
-        *(tmp->bitmap+i) = 0;
-    }
-    for(int i = 0;i < this->degree * 2;i++)
-    {
-        if(this->kv[i].k >= midKey)
-        {
-            tmp->kv[i] = this->kv[i];
-
-            t = tmp->bitmap + i / 8;
-            *t |= (1 << (7 - (i % 8)));
-
-            t = tmp->fingerprints + i;
-            *t = *(fingerprints + i);
-            
-            t  = bitmap + i / 8;
-            *t &= ~(1 << (7 - i % 8));
+    memset(newNode->bitmap, 0, bitmapSize);
+    for (int i = 0; i < this->degree * 2; i++) {
+        if (this->kv[i].k >= midKey) {
+            newNode->bitmap[i / 8] |= (1 << (7 - (i % 8)));
+            newNode->fingerprints[i] = this->fingerprints[i];
+            newNode->kv[i] = this->kv[i];
+            this->bitmap[i / 8] &= ~(1 << (7 - i % 8));
         }
     }
-    tmp->n = n / 2;
-    n /= 2;
-    tmp->degree = this->degree / 2;
-    this->degree /= 2;
 
-    tmp->next = this->next;
-    tmp->prev = this;
+    newNode->n = this->degree;
+    this->n = this->degree;
 
-    PPointer np = *(this->pNext);
-    *(this->pNext) = tmp->getPPointer();
-    cout << "here1 " << tmp->getPPointer().fileId << endl;
-    cout << "here2 " <<this->pNext->fileId << endl;
-    *(tmp->pNext) = np;
-    
-    this->next = tmp;
-    this->persist();
-    tmp ->persist();
+    PPointer pt = *(this->pNext);
+    *(this->pNext) = newNode->pPointer;
+    *(newNode->pNext) = pt;
+
+    newNode->prev = this;
+    if (this->next != NULL) {
+        this->next->prev = newNode;
+    }
+
+    LeafNode* tmp = this->next;
+    this->next = newNode;
+    newNode->next = tmp;
 
     newChild->key = midKey;
-    newChild->node = tmp;
+    newChild->node = newNode;
+
+    this->persist();
+    newNode->persist();
+
     return newChild;
 }
 
-int cmp(const void * a , const void * b)
-{
-    return *(Key*)b - *(Key*)a;
+int cmp(const void* a , const void* b) {
+    return *(Key*)a - *(Key*)b;
 }
+
 
 // use to find a mediant key and delete entries less then middle
 // called by the split func to generate new leaf-node
@@ -590,19 +435,20 @@ int cmp(const void * a , const void * b)
 Key LeafNode::findSplitKey() {
     Key midKey = 0;
     Key all[LEAF_DEGREE * 2];
-    for(int i = 0;i < LEAF_DEGREE * 2;i++)
+    for(int i = 0; i < LEAF_DEGREE * 2; i++) {
         all[i] = kv[i].k;
-    qsort(all,this->degree * 2,sizeof(Key),cmp);
-    midKey = all[this->degree];
+    }
+    qsort(all, LEAF_DEGREE * 2, sizeof(Key), cmp);
+    midKey = all[LEAF_DEGREE];
     return midKey;
 }
 
 // get the targte bit in bitmap
 // TIPS: bit operation
 int LeafNode::getBit(const int& idx) {
-    Byte * t = this->bitmap;
-    t += idx / 8;
-    return (((*t) & (1 << (7 - idx % 8)))) != 0;
+    if (idx < 0 || idx >= this->degree * 2);
+    Byte byte = this->bitmap[idx / 8];
+    return (byte & (1 << 7 - idx % 8)) != 0;
 }
 
 Key LeafNode::getKey(const int& idx) {
@@ -630,40 +476,30 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
 // return TRUE if the update succeed
 bool LeafNode::update(const Key& k, const Value& v) {
     bool ifUpdate = false;
-    // TODO
+    Byte hash = keyHash(k);
+    for (int i = 0; i < this->degree * 2; ++ i) {
+        if (getBit(i)) {
+            if (hash == this->fingerprints[i]) {
+                if (k == this->kv[i].k) {
+                    this->kv[i].v = v;
+                    ifUpdate = true;
+                    break;
+                }
+            }
+        }
+    }
     return ifUpdate;
 }
 
 // if the entry can not be found, return the max Value
 Value LeafNode::find(const Key& k) {
-    // for(int i = 0;i < this->bitmapSize;i++)
-    // {
-    //     Byte * t = bitmap + i;
-    //     if(*t == 1)
-    //     {
-    //         Byte *t1 = this->fingerprints + i;
-    //         if(keyHash(k) == *t1)
-    //         {
-    //             return this->kv[i].v;
-    //         }
-    //     }
-    // }
-
-    // cout << "insert it "<< getBit(0) << endl;
-
-    
-
-    for(int i = 0;i < this->n;i ++){
-        // cout <<"n "<< n << endl;
-        if(getBit(i) == 1) {
-            // cout << "nothing1 \n";
-            Byte *t1 = this->fingerprints + i;
-            if(keyHash(k) == *t1)
-            {
-                // cout << "nothing2 \n";
-                // printf("key == : %d\n",this->kv[i].k);
-                // cout << "kv -> v " << this->kv[i].v << endl;
-                return this->kv[i].v;
+    Byte hash = keyHash(k);
+    for (int i = 0; i < this->degree * 2; ++ i) {
+        if (getBit(i)) {
+            if (hash == this->fingerprints[i]) {
+                if (k == this->kv[i].k) {
+                    return this->kv[i].v;
+                }
             }
         }
     }
@@ -672,72 +508,29 @@ Value LeafNode::find(const Key& k) {
 
 // find the first empty slot
 int LeafNode::findFirstZero() {
-    Byte * bpt = this->bitmap;
-    for(int i = 0;i < this->bitmapSize;i++){
-        for(int j = 7; j >= 0; j--) {
-            // printf(" bpt is : %d\n",*bpt);
-            // cout << "abc  "<<((!(*bpt)) & (1 << j)) << endl;
-            // cout << "shiff " << (1 << j) << " j is "<< j << endl;
-            if((~(*bpt) & (1 << j)))
-            {
-                return i * 8 + 7 - j ;
+    Byte byte;
+    int pos = -1;
+    for (int i = 0; i < this->bitmapSize; ++ i) {
+        if (pos != -1) break;
+        byte = this->bitmap[i];
+        for (int j = 0; j < 8; ++ j) {
+            if ((~byte) & (1 << (7 - j))) {
+                pos = i * 8 + j;
+                break;
             }
         }
-        bpt++;
     }
-    return -1;
+    return pos < this->degree * 2 ? pos : -1;
 }
 
 // persist the entire leaf
 // use PMDK
 void LeafNode::persist() {
-    char * pmemaddr;
-    size_t mapped_len;
-    int is_pmem;
-
-    string path = DATA_DIR  +to_string(this->pPointer.fileId);
-    pmemaddr = (char*)pmem_map_file(path.c_str(), LEAF_GROUP_HEAD + LEAF_GROUP_AMOUNT * calLeafSize(), 
-                                    PMEM_FILE_CREATE,0666, &mapped_len, &is_pmem);
-
-    // cout << "pmem_addr " << *((uint64_t *)pmem_addr) << endl;
-    // cout << "here\n";
-    Byte *t = (Byte *) (pmemaddr + this->pPointer.offset);
-    // cout << "here1\n";
-    // Byte * bits = (Byte *) this->bitmap;
-
-    for(int i = 0;i < bitmapSize;i++)
-    {
-        *(t++) = *(this->bitmap + i);
-        // cout << "cal num " << countOneBits(*(this->bitmap+i)) << endl;
+    if (pmem_is_pmem(this->pmem_addr, calLeafSize())) {
+        pmem_persist(this->pmem_addr, calLeafSize());
+    } else {
+        pmem_msync(this->pmem_addr, calLeafSize());
     }
-    // cout << "here2\n";
-    PPointer *t1 = (PPointer *)t;
-    if(this->pNext == nullptr)
-        t1 ++;
-    else  *(t1++) = *(this->pNext);
-    // cout << "here3\n";
-
-    Byte *t2 = (Byte *)t1;
-    // cout << "here3\n";
-    for(int i = 0;i < 2*LEAF_DEGREE;i++){
-        *(t2++) = *(this->fingerprints + i);
-    }
-    // cout << "here\n";
-    KeyValue * t3 = (KeyValue *)t2;
-    for(int i = 0;i < 2*LEAF_DEGREE;i++){
-        *(t3++) = this->kv[i];
-    }
-
-    if (is_pmem){
-        pmem_persist(pmemaddr, mapped_len);
-        // pmem_persist(this->pmem_addr,calLeafSize());
-    }      
-    else{
-        pmem_msync(pmemaddr, mapped_len);
-        // pmem_msync(this->pmem_addr,calLeafSize());
-    }
-    // PAllocator* pa = PAllocator::getAllocator();
-    // pa->~PAllocator();
 }
 
 // call by the ~FPTree(), delete the whole tree
@@ -804,28 +597,50 @@ Value FPTree::find(Key k) {
 // call the InnerNode and LeafNode print func to print the whole tree
 // TIPS: use Queue
 void FPTree::printTree() {
-    // TODO
+    queue<NodeLevel> q;
+    int maxLevel = 0;
+    NodeLevel cur, tmp;
+    cur.node = root;
+    cur.level = 0;
+    q.push(cur);
+    while (!q.empty()) {
+        cur = q.front();
+        q.pop();
+        if (cur.level > maxLevel) {
+            maxLevel++;
+            cout << endl;
+        }
+        cur.node->printNode();
+        if (!cur.node->ifLeaf()) {
+            InnerNode* inner = (InnerNode*) cur.node;
+            for (int i = 0; i < inner->getChildNum(); ++ i) {
+                tmp.level = cur.level + 1;
+                tmp.node = inner->getChild(i);
+                q.push(tmp);
+            }
+        }
+    }
+    cout << endl;
 }
 
 // bulkLoading the leaf files and reload the tree
 // need to traverse leaves chain
 // if no tree is reloaded, return FALSE
-// need to call the PALlocator  
+// need to call the PALlocator
 bool FPTree::bulkLoading() {
     PAllocator* palloc = PAllocator::getAllocator();
     PPointer ppt = palloc->getStartPointer();
-    cout << "file " << ppt.fileId << " offset " << ppt.offset << endl;
     if (!palloc->ifLeafUsed(ppt)) {
-        cout << "used false\n";
         return false;
     }
-    cout << "hi" << endl;
+
+    LeafNode* old_leaf = NULL;
+
     while (palloc->ifLeafUsed(ppt)) {
-        cout << "hello" << endl;
         LeafNode* leaf = new LeafNode(ppt, this);
         Key minKey = MAX_KEY;
         Key leafKey;
-        for (int i = 0; i < LEAF_DEGREE * 2; ++ i) {
+        for (int i = 0; i < LEAF_DEGREE * 2; i++) {
             if (leaf->getBit(i)) {
                 leafKey = leaf->kv[i].k;
                 minKey = minKey <= leafKey ? minKey : leafKey;
@@ -834,8 +649,15 @@ bool FPTree::bulkLoading() {
         KeyNode kn;
         kn.key = minKey;
         kn.node = leaf;
+
+        leaf->prev = old_leaf;
+        if (old_leaf != NULL) {
+            old_leaf->next = leaf;
+        }
+        old_leaf = leaf;
+
         root->insertLeaf(kn);
         ppt = *(leaf->pNext);
-        cout << "file " << ppt.fileId << " offset " << ppt.offset << endl;
-    }
+    } 
+    return false;
 }
