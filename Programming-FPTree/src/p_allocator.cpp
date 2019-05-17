@@ -8,6 +8,7 @@ const string P_ALLOCATOR_CATALOG_NAME = "p_allocator_catalog";
 // a list storing the free leaves
 const string P_ALLOCATOR_FREE_LIST    = "free_list";
 
+// Singleton
 PAllocator* PAllocator::pAllocator = new PAllocator();
 
 PAllocator* PAllocator::getAllocator() {
@@ -47,17 +48,27 @@ PAllocator::PAllocator() {
         freeNum = 0;
         startLeaf.fileId = ILLEGAL_FILE_ID;
         startLeaf.offset = 0;
-        
+
+        // after create the catalog and free_list file, they need to
+        // store, freeList now is empty, so create an empty file
         ofstream freeListFileOut(freeListPath, ios::out|ios::binary);
         if (freeListFileOut.is_open()) {
             freeListFileOut.close();
         }
-
+        // this function is used for store the catalog file
         persistCatalog();
     }
     this->initFilePmemAddr();
 }
 
+/******************************************************************************
+when destruct, store the data, and then unmap the pmem address, at last set
+the pointer pAllocator to NULL
+
+TODO
+derectly set the pAllocator to NULL without delete may cause MEMERY LEAK,
+consider user samrt pointer or other method to fixed
+******************************************************************************/
 PAllocator::~PAllocator() {
     persistCatalog();
     for (uint64_t i = 1; i < maxFileId; ++ i) {
@@ -99,10 +110,18 @@ char* PAllocator::getLeafPmemAddr(PPointer p) {
 }
 
 // get and use a leaf for the fptree leaf allocation
-// return 
+// return true if successs, false otherwise
+// the freelist file needn't to be update for we always allocate the last leaf
+// in free list, and we only search the first freeNum leaf in freelist file for
+// reload the freelist when initialize, we just update freeNum
 bool PAllocator::getLeaf(PPointer &p, char* &pmem_addr) {
+    // if freenum is 0, it means that there is no free leaf, call function
+    // newLeafGroup to create a new leaf group for supply free leaves,
+    // if newLeafGroup return false, then create new leaf group failed
+    // and there is no usable free leaf, retrun false
     if (freeNum == 0 && !newLeafGroup()) return false;
 
+    // get the last leaf in free list
     p.fileId = freeList.back().fileId;
     p.offset = freeList.back().offset;
     pmem_addr = getLeafPmemAddr(p);
@@ -112,12 +131,15 @@ bool PAllocator::getLeaf(PPointer &p, char* &pmem_addr) {
         return false;
     }
 
-    if (!ifLeafExist(this->startLeaf)) {
+    // if start leaf is not used, the leaf create now is the start leaf
+    if (!ifLeafUsed(this->startLeaf)) {
         this->startLeaf = p;
     }
 
     freeList.pop_back();
     freeNum--;
+
+    // initial the leaf as 0, maybe can remove this initial step
     memset(pmem_addr, 0, calLeafSize());
     if (pmem_is_pmem(pmem_addr, calLeafSize())) {
         pmem_persist(pmem_addr, calLeafSize());
@@ -125,6 +147,9 @@ bool PAllocator::getLeaf(PPointer &p, char* &pmem_addr) {
         pmem_msync(pmem_addr, calLeafSize());
     }
 
+    // set the corresponding leaf group header,
+    // usedNum + 1, and set the corresponding bitmap byte to 1
+    // then persist the leaf group header
     char* leaf_group_pt = fId2PmAddr[p.fileId];
     uint64_t* pt = (uint64_t*) leaf_group_pt;
     (*pt)++;
@@ -135,15 +160,18 @@ bool PAllocator::getLeaf(PPointer &p, char* &pmem_addr) {
     } else {
         pmem_msync(leaf_group_pt, LEAF_GROUP_HEAD);
     }
-    
+
     return true;
 }
 
+// leaf used means the leaf exist and is not free
 bool PAllocator::ifLeafUsed(PPointer p) {
     if (ifLeafExist(p) && !ifLeafFree(p)) return true;
     return false;
 }
 
+// leaf free means the leaf exist and the corresponding leaf group
+// bitmap byte is 0
 bool PAllocator::ifLeafFree(PPointer p) {
     if (ifLeafExist(p)) {
         return !*(((Byte*)fId2PmAddr[p.fileId]) + sizeof(uint64_t) +
@@ -152,7 +180,11 @@ bool PAllocator::ifLeafFree(PPointer p) {
     return false;
 }
 
-// judge whether the leaf with specific PPointer exists. 
+// judge whether the leaf with specific PPointer exists.
+// there is 3 illegal case
+// case 1: fileid out of bound
+// case 2: offset out of bound
+// case 3: offset not point to the start of a leaf
 bool PAllocator::ifLeafExist(PPointer p) {
     if (p.fileId == ILLEGAL_FILE_ID || p.fileId >= maxFileId) return false;
     if (p.offset >= LEAF_GROUP_HEAD + LEAF_GROUP_AMOUNT * calLeafSize()) return false;
@@ -162,8 +194,17 @@ bool PAllocator::ifLeafExist(PPointer p) {
 
 // free and reuse a leaf
 bool PAllocator::freeLeaf(PPointer p) {
+    // if leaf not used, can't free
     if (!ifLeafUsed(p)) return false;
 
+    // if the ppointer is start leaf, set start leaf to it's pnext,
+    // and persist catalog
+    if (startLeaf == p) {
+        startLeaf = *((PPointer*)(getLeafPmemAddr(p) + (LEAF_DEGREE * 2 + 7) / 8));
+    }
+    persistCatalog();
+
+    // open the freeList file, and update it
     ofstream freeListFile((DATA_DIR + P_ALLOCATOR_FREE_LIST).c_str(), ios::out|ios::binary);
     if (!freeListFile.is_open()) {
         printf("error in freeLeaf\n");
@@ -172,9 +213,11 @@ bool PAllocator::freeLeaf(PPointer p) {
     freeListFile.write((char*) &p, sizeof(PPointer));
     freeListFile.close();
 
+    // add the free leaf to free list
     freeList.push_back(p);
     freeNum++;
 
+    // update leaf group header and persist
     char* leaf_group_pt = fId2PmAddr[p.fileId];
     uint64_t* pt = (uint64_t*) leaf_group_pt;
     (*pt)--;
@@ -189,6 +232,7 @@ bool PAllocator::freeLeaf(PPointer p) {
     return true;
 }
 
+// persist the catalog file
 bool PAllocator::persistCatalog() {
     string allocatorCatalogPath = DATA_DIR + P_ALLOCATOR_CATALOG_NAME;
     ofstream allocatorCatalog(allocatorCatalogPath, ios::out|ios::binary);
@@ -214,6 +258,7 @@ bool PAllocator::newLeafGroup() {
 
     string path = DATA_DIR + to_string(maxFileId);
 
+    // get pmem map addr
     pmem_addr = (char*)pmem_map_file(path.c_str(),
                             LEAF_GROUP_HEAD + LEAF_GROUP_AMOUNT * calLeafSize(),
                             PMEM_FILE_CREATE, 0666, &mapped_len, &is_pmem);
@@ -222,9 +267,11 @@ bool PAllocator::newLeafGroup() {
         return false;
     }
 
+    // add the new fileid and pmem addr to fId2PmAddr
     fId2PmAddr[maxFileId] = pmem_addr;
     memset(pmem_addr, 0, mapped_len);
 
+    // add the new free leaves to free list and store them in free list file
     ofstream freeListFileOut((DATA_DIR + P_ALLOCATOR_FREE_LIST).c_str(), ios::out|ios::binary);
     if (!freeListFileOut.is_open()) {
         printf("error: in newLeafGroup -> open free list file\n");
@@ -243,6 +290,7 @@ bool PAllocator::newLeafGroup() {
 
     freeListFileOut.close();
 
+    // update max file id and persist the leaf group
     maxFileId++;
 
     if (is_pmem) {
