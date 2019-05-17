@@ -1,5 +1,5 @@
 #include"fptree/fptree.h"
-
+#include <algorithm>
 using namespace std;
 
 // Initial the new InnerNode
@@ -39,7 +39,7 @@ int InnerNode::findIndex(const Key& k) {
 // WARNING: can not insert when it has no entry
 void InnerNode::insertNonFull(const Key& k, Node* const& node) {
     if(node == NULL || ((InnerNode*)node)->nKeys == 0) {
-        printf("can not insert when it has no entry\n");
+        printf("error: InnerNode can not insert when it has no entry\n");
         return;
     }
     int pos = findIndex(k);
@@ -73,7 +73,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         }
         return newChild;
     }
-    
+
     // 2.recursive insertion
     int pos = findIndex(k);
     newChild = this->childrens[pos]->insert(k, v);
@@ -116,7 +116,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
         }
         return newChild;
     }
-    
+
     // recursive insert
     // Tip: please judge whether this InnerNode is full
     // next level is not leaf, just insertLeaf
@@ -158,12 +158,12 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
 
 KeyNode* InnerNode::split() {
     if(this->nKeys <= 2*this->degree ){
-        printf("error: split innernode when not full\n");
+        printf("error: InnerNode split innernode when not full\n");
         return NULL;
     }
 
     KeyNode* newChild = new KeyNode();
-    // right half entries of old node to the new node, others to the old node. 
+    // right half entries of old node to the new node, others to the old node.
 
     InnerNode * newNode = new InnerNode(this->degree,this->tree,false);
 
@@ -200,7 +200,7 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
         }
         return ifRemove;
     }
-    
+
     // recursive remove
     int pos = this->findIndex(k);
     ifRemove = this->childrens[pos]->remove(k, pos, this, ifDelete);
@@ -391,7 +391,7 @@ void InnerNode::mergeRight(InnerNode* const& rightBro, const Key& k) {
 // remove a children from the current node, used by remove func
 void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
     if (keyIdx < 0 || keyIdx >= this->nKeys || childIdx < 0 || childIdx >= nChild) {
-        printf("error: in removeChild\n");
+        printf("error: InnerNode removeChild with index out of bound\n");
     }
     for (int i = keyIdx; i < nKeys - 1; i++) {
         this->keys[i] = this->keys[i + 1];
@@ -467,7 +467,7 @@ LeafNode::LeafNode(FPTree* t) {
     PPointer ppt;
     char* pmem_addr;
     if (!palloc->getLeaf(ppt, pmem_addr)) {
-        printf("error： get leaf fail\n");
+        printf("error：LeafNode get leaf fail\n");
     }
 
     this->bitmapSize = (LEAF_DEGREE * 2 + 7) / 8;
@@ -496,7 +496,7 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
     char* pmem_addr;
     pmem_addr = palloc->getLeafPmemAddr(p);
     if (pmem_addr == NULL) {
-        printf("error： build leaf fail, ppointer invalid.\n");
+        printf("error：LeafNode build leaf fail, ppointer invalid.\n");
     }
 
     this->bitmapSize = (LEAF_DEGREE * 2 + 7) / 8;
@@ -536,7 +536,8 @@ KeyNode* LeafNode::insert(const Key& k, const Value& v) {
 void LeafNode::insertNonFull(const Key& k, const Value& v) {
     int pos = this->findFirstZero();
     if (pos < 0 || pos >= this->degree * 2) {
-        printf("error: insertNotFull when is full\n.");
+        printf("error: LeafNode insertNotFull when it is full.\n");
+        return;
     }
     *(this->bitmap + pos / 8) |= (1 << (7 - pos % 8));
     *(this->fingerprints + pos) = keyHash(k);
@@ -558,7 +559,7 @@ KeyNode* LeafNode::split() {
             newNode->bitmap[i / 8] |= (1 << (7 - (i % 8)));
             newNode->fingerprints[i] = this->fingerprints[i];
             newNode->kv[i] = this->kv[i];
-            this->bitmap[i / 8] &= ~(1 << (7 - i % 8));
+            this->bitmap[i / 8] &= (~(1 << (7 - i % 8)));
         }
     }
 
@@ -587,10 +588,6 @@ KeyNode* LeafNode::split() {
     return newChild;
 }
 
-int cmp(const void* a , const void* b) {
-    return *(Key*)a - *(Key*)b;
-}
-
 
 // use to find a mediant key and delete entries less then middle
 // called by the split func to generate new leaf-node
@@ -601,7 +598,7 @@ Key LeafNode::findSplitKey() {
     for(int i = 0; i < LEAF_DEGREE * 2; i++) {
         all[i] = kv[i].k;
     }
-    qsort(all, LEAF_DEGREE * 2, sizeof(Key), cmp);
+    sort(all, all + LEAF_DEGREE * 2);
     midKey = all[LEAF_DEGREE];
     return midKey;
 }
@@ -631,7 +628,7 @@ PPointer LeafNode::getPPointer() {
 // need to call PAllocator to set this leaf free and reuse it
 bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete) {
     bool ifRemove = false;
-    
+
     Byte hash = keyHash(k);
     int pos = -1;
     for (int i = 0; i < this->degree * 2; ++ i) {
@@ -710,7 +707,7 @@ int LeafNode::findFirstZero() {
             }
         }
     }
-    return pos < this->degree * 2 ? pos : -1;
+    return pos;
 }
 
 // persist the entire leaf
@@ -848,6 +845,6 @@ bool FPTree::bulkLoading() {
 
         root->insertLeaf(kn);
         ppt = *(leaf->pNext);
-    } 
+    }
     return false;
 }
