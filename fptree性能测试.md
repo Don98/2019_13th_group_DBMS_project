@@ -1,6 +1,23 @@
-# lycsb测试leveldb
+# fptree性能测试
 
-## 关于ycsb
+## 前言
+这里是简单的对我们实现的fptree的简单插入查询性能测试，没有涉及删除功能的性能测试部分。
+
+我们测试的思路类似于ycsb的测试过程，测试时使用leveldb做基准来对fptree的性能做出定性分析。
+
+以下是本文档的结构，可以直接跳转到文末看fptree性能测试的结论。
+
+
+- [前言](#前言)
+- [ycsb介绍](#ycsb介绍)
+- [leveldb介绍](#leveldb介绍)
+    - [leveldb安装](#leveldb安装)
+    - [leveldb使用](#leveldb安装)
+- [使用lycsb测试leveldb](#使用lycsb测试leveldb)
+- [fptree性能测试](#fptree性能测试)
+- [总结](#总结)
+
+## ycsb介绍
 ycsb全称Yahoo! Cloud Serving Benchmark，是一个键值数据库性能测试的benchmark，细节请看其[github仓库](https://github.com/brianfrankcooper/YCSB)。  
 YCSB大体上分两个步，第一步是读取load文件，插入一定量的数据对数据库进行初始化。第二步是读取run文件，进行数据库相关操作。load和run文件的一条操作语句如下:
 ```
@@ -11,7 +28,7 @@ INSERT 6284781860667377211
 
 我们的测试并没有基于ycsb这个项目，只是依照ycsb的测试思路进行数据库性能的测试。对leveldb的ycsb测试源码详见Programming-FPTree/src/lycsb.cpp
 
-## 关于leveldb
+## leveldb介绍
 ```
 LevelDB is a fast key-value storage library written at Google that provides an ordered mapping from string keys to string values.
 ```
@@ -22,7 +39,7 @@ leveldb是一个快速的键值对数据库，提供有序的字符串类型的�
 
 以下是leveldb的简单安装与使用（测试环境Ubuntu18.04）。
 
-### 安装
+### leveldb安装
 首先从github上获取leveldb的源码
 ```
 git clone https://github.com/google/leveldb.git
@@ -40,7 +57,7 @@ cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
 
 编译完了之后在build文件夹下会出现libleveldb.a文件，我们测试leveldb时使用静态编译，需要用到此文件。
 
-### 使用
+### leveldb使用
 leveldb提供了简洁的api供我们使用，具体教程见[github上的文档](https://github.com/google/leveldb/blob/master/doc/index.md)
 以下是简单的介绍：
 #### 打开数据库：
@@ -137,9 +154,35 @@ rm -rf /tmp/testdb
 
 以上测试都已在makefile中写好，使用时只需要到lycsb.cpp中把load和run文件的路径修改为需要的测试文件，然后在Programming-FPTree/src目录下运行
 ```
-make lycsbTest
+make testleveldb
 ```
 不需要进行其他操作。
 
 使用220w-rw-50-50-load.txt和220w-rw-50-50-run.txt测试结果如图：
 ![](./asset/lycsb_test_220w_rw_50_50.png)
+
+## fptree性能测试
+以lyscb测试leveldb为例，我们可以以类似的代码流程来测试fptree的性能。
+
+我们以leveldb为性能标准，在ycsb.cpp文件中同时以相同的workload文件测试fptree和leveldb，在已经写好的ycsb.cpp文件中默认为220w条目的workload,
+
+在测试前先进入Programming-FPTree的src目录，测试指令为
+```
+make testfptree
+```
+注意我们的fptree的路径为/mnt/mem, leveldb的路径为/mnt/mem/testdb,
+并且/mnt/mem是一个dax目录。
+
+220万条目读写对等的ycsb测试结果如图：
+![](./asset/ycsbtest.png)
+
+可见在load阶段220万条目的插入中fptree用时8.84s, 平均插入耗时4021ns，leveldb用时10.82s，平均插入耗时4919ns，插入阶段fptree略快于leveldb
+
+在run阶段进行了175452次插入，174548次查询，fptree每秒平均操作次数为324941次，leveldb每秒平均操作次数为102377次，fptree平均性能是leveldb的三倍。
+
+而在10w条目的测试中fptree的性能普遍高于leveldb，但高出的幅度没有那么大。
+
+# 总结
+fptree的性能相对于leveldb而言还算不错，在大数据量下fptree的性能表现相比leveldb会逐步提高。
+
+实验结果表明fptree是一个高效的数据结构。
