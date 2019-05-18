@@ -11,7 +11,7 @@ const string workload = "../workloads/";
 const string load = workload + "220w-rw-50-50-load.txt"; // TODO: the workload_load filename
 const string run  = workload + "220w-rw-50-50-run.txt"; // TODO: the workload_run filename
 
-const int READ_WRITE_NUM = 150000; // TODO: amount of operations
+const int READ_WRITE_NUM = 350000; // TODO: amount of operations
 
 int main() {
     FPTree fptree(1028);
@@ -195,8 +195,8 @@ int main() {
     }
 
     clock_gettime(CLOCK_MONOTONIC, &finish);
-    fclose(ycsb_run);
     single_time = (finish.tv_sec - start.tv_sec) + (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
     printf("Run phase finishes: %ld/%ld items are inserted/searched\n", inserted, operation_num - inserted);
     printf("Run phase throughput: %f operations per second \n", READ_WRITE_NUM/single_time);
     return 0;
