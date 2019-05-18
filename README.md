@@ -10,11 +10,11 @@ leveldb是google的一个键值存储系统，github仓库见https://github.com/
 
 FPTree是Oukid提出的一种适用于SCM(Storage Class Memory)的一类新型的B树，详见前期工作与论文阅读总结文件夹下的Oukid_FPTree.pdf论文。
 
-另外，我们需要实现NVM文件管理的主要对象PAllocator，对应着p_allocator.cpp，其负责分配LeafNode在NVM中的空间，映射数据文件并返回虚拟地址给LeafNode使用。其管理的叶子文件的粒度是一个LeafGroup，一个LeafGroup由多个叶子以及一个数据头组成，数据头由一个8字节的当前LeafGroup使用叶子数和叶子槽的bitmap，bitmap为了简单使用1个byte指明一个槽位。  
+另外，我们需要实现NVM文件管理的主要对象PAllocator，对应着p_allocator.cpp，其负责分配LeafNode在NVM中的空间，映射数据文件并返回虚拟地址给LeafNode使用。其管理的叶子文件的粒度是一个LeafGroup，一个LeafGroup由多个叶子以及一个数据头组成，数据头由一个8字节的当前LeafGroup使用叶子数和叶子槽的bitmap，bitmap为了简单使用1个byte指明一个槽位。
 
 ## FPTreeDB键值存储系统
 
-本次课程设计基于针对NVM优化的数据结构FPTree，实现一个简单的键值存储引擎FPTreeDB。我们通过将其包装成一个调用库，供用户程序使用并管理其数据存储，与LevelDB的使用方式类似。  
+本次课程设计基于针对NVM优化的数据结构FPTree，实现一个简单的键值存储引擎FPTreeDB。我们通过将其包装成一个调用库，供用户程序使用并管理其数据存储，与LevelDB的使用方式类似。
 其对外可用的对数据的基本操作就增删改查：
 
 1. Insert增
@@ -22,9 +22,9 @@ FPTree是Oukid提出的一种适用于SCM(Storage Class Memory)的一类新型�
 3. Update改
 4. Find查
 
-对于系统恢复，我们采取课本介绍的BulkLoading方式。  
+对于系统恢复，我们采取课本介绍的BulkLoading方式。
 
-我们的基本目标是实现上述5大基本操作，使系统能正常运行。系统架构如下：  
+我们的基本目标是实现上述5大基本操作，使系统能正常运行。系统架构如下：
 ![FPTreeDB架构](./asset/FPTreeDB.png)
 
 我们预期完成：
@@ -35,35 +35,35 @@ FPTree是Oukid提出的一种适用于SCM(Storage Class Memory)的一类新型�
 ## 项目文件说明
 
 ```
-|__gtest: 为Google Test项目目录，不用管  
-|__include: 里包含所有用到的头文件  
-   |__fptree: fptree的头文件所在文件夹  
-      |__fptree.h: fptree地头文件  
-   |__utility: fptree所用工具的头文件所在文件夹  
-      |__utility.h: 指纹计算等工具函数所在头文件  
-      |__clhash.h: 指纹计算所用哈希函数头文件  
-      |__p_allocator.h: NVM内存分配器头文件  
-|__src: 为项目源码所在地，完成里面所有的实现  
+|__gtest: 为Google Test项目目录，不用管
+|__include: 里包含所有用到的头文件
+   |__fptree: fptree的头文件所在文件夹
+      |__fptree.h: fptree地头文件
+   |__utility: fptree所用工具的头文件所在文件夹
+      |__utility.h: 指纹计算等工具函数所在头文件
+      |__clhash.h: 指纹计算所用哈希函数头文件
+      |__p_allocator.h: NVM内存分配器头文件
+|__src: 为项目源码所在地，完成里面所有的实现
    |__bin: 可执行文件所在文件夹
       |__main: main.cpp的可执行文件
       |__lycsb: lycsb.cpp的可执行文件
       |__ycsb: ycsb.cpp的可执行文件
-   |__fptree.cpp: fptree的源文件，项目核心文件(TODO)  
-   |__clhash.c: 指纹计算的哈希函数源文件  
-   |__p_allocator.cpp: NVM内存分配器源文件(TODO)  
-   |__lycsb.cpp: LevelDB的YCSB测试代码(TODO)  
-   |__ycsb.cpp: FPTreeDB和LevelDB的YCSB对比测试代码(TODO)  
-   |__makefile: src下项目的编译文件  
-|__workloads: 为YCSB测试负载文件，用于YCSB Benchmark测试  
-   |__数据量-rw-读比例-写比例-load.txt: YCSB测试数据库装载文件  
-   |__数据量-rw-读比例-写比例-run.txt: YCSB测试运行文件  
-|__test: 为Google Test用户测试代码所在，请完成编译并通过所有测试  
+   |__fptree.cpp: fptree的源文件，项目核心文件(TODO)
+   |__clhash.c: 指纹计算的哈希函数源文件
+   |__p_allocator.cpp: NVM内存分配器源文件(TODO)
+   |__lycsb.cpp: LevelDB的YCSB测试代码(TODO)
+   |__ycsb.cpp: FPTreeDB和LevelDB的YCSB对比测试代码(TODO)
+   |__makefile: src下项目的编译文件
+|__workloads: 为YCSB测试负载文件，用于YCSB Benchmark测试
+   |__数据量-rw-读比例-写比例-load.txt: YCSB测试数据库装载文件
+   |__数据量-rw-读比例-写比例-run.txt: YCSB测试运行文件
+|__test: 为Google Test用户测试代码所在，请完成编译并通过所有测试
    |__bin: 单元测试可执行文件所在文件夹
       |__fptree_test: fptree_test.cpp的可执行文件
       |__utility_test: utility_test.cpp的可执行文件
-   |__fptree_test.cpp: fptree相关测试  
-   |__utility_test.cpp: PAllocator等相关测试  
-   |__makefile: gtest单元测试的编译文件   
+   |__fptree_test.cpp: fptree相关测试
+   |__utility_test.cpp: PAllocator等相关测试
+   |__makefile: gtest单元测试的编译文件
 ```
 
 ## PAllocator
@@ -76,7 +76,7 @@ PAllocator中管理三种比较重要的文件，分别为LeafGroup,catelog,free
 
 3. freeList：| (fId, offset)1, ..., (fId)N |
 
-   
+
 
 LeafGroup是数据文件，其文件名用整数表示，从1递增分配即可，规定0为非法标号。PAllocator需要记录分配文件的最大标号，即catalog文件的maxFileId。catalog文件中freeNum为当前可用叶子数，treeStartLeaf为第一个叶子的持久化指针，用于重载树时从其开始，通过链表形式重载。freeList文件每个条目为空叶子的持久化指针，用于启动即可知道可用叶子。
 
@@ -89,7 +89,7 @@ LeafGroup是数据文件，其文件名用整数表示，从1递增分配即可�
 - 判断是否创建了catelog,freeList文件
   - 如果创建了上述文件，则从文件中读入数据给变量赋值
   - 如果没有创建上述文件，则创建文件，同时对变量进行初始化
-- 执行initFilePmemAddr() 
+- 执行initFilePmemAddr()
 
 ##### void PAllocator::initFilePmemAddr() ;
 
@@ -377,4 +377,4 @@ FPTree的系统结构很类似于leveldb，我们使用ycsb测试leveldb作为�
 
 ## 完成进度
 
-阶段一已经完成
+阶段一二三四均已经完成，基本实现了fptree的数据结构
