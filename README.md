@@ -222,7 +222,7 @@ Value LeafNode::find(const Key& k) {}
 
 这些函数的调用关系如下图所示：
 
-![](./picture/函数依赖.png)
+![](./asset/函数依赖.png)
 
 接下来我将介绍几个主要的函数：
 

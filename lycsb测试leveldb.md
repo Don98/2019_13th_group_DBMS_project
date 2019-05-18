@@ -142,4 +142,4 @@ make lycsbTest
 不需要进行其他操作。
 
 使用220w-rw-50-50-load.txt和220w-rw-50-50-run.txt测试结果如图：
-![](./picture/lycsb_test_220w_rw_50_50.png)
+![](./asset/lycsb_test_220w_rw_50_50.png)
