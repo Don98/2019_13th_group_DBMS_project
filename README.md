@@ -212,10 +212,6 @@ int LeafNode::getBit(const int& idx) {}
 void LeafNode::persist() {}
 // 重载函数
 bool FPTree::bulkLoading() {}
-// 按照键查找值（中间节点向下搜索
-Value InnerNode::find(const Key& k) {}
-// 按照键查找值（在叶子节点中搜索
-Value LeafNode::find(const Key& k) {}
 ```
 
 
@@ -279,9 +275,90 @@ Value LeafNode::find(const Key& k) {}
 - 将键大于中位数的所有键值对移动到新节点上
 - 对相应的属性进行设置
 
+**InnerNode::insertLeaf()**
+
+这个函数完成的工作是：
+
+- 对第一个和第二个将要被插入树中的叶子节点进行特殊处理
+- 如果下一级并非叶子节点，继续调用insertLeaf(),并对中间节点满的情况进行处理
+- 如果下一级是叶子几点，把要插入的叶子节点加入到当前中间节点的孩子中
+- 判断根节点是否需要分裂，如果需要则进行相关的操作
+
+insertLeaf()函数将被bulkLoading()函数调用
+
+**FPTree::bulkLoading()**
+
+这个函数完成的工作是：
+
+- 从当前树的第一个叶子节点开始调用inserLeaf()函数，依次将叶子节点插入到树上
+- 为每一个要插入到树上的叶子节点设置prev，next指针分别指向前一个叶子节点和后一个叶子节点
 
 
 
+第三阶段需要完成的任务是查询和更新操作，对应的函数如下
+
+```c++
+// 按照键查找值
+Value FPTree::find(Key k) {}
+// 按照键查找值（中间节点向下搜索
+Value InnerNode::find(const Key& k) {}
+// 按照键查找值（在叶子节点中搜索
+Value LeafNode::find(const Key& k) {}
+// 更新键对应的值
+bool FPTree::update(Key k, Value v) {}
+// 更新键对应的值（中间节点向下查找并更新
+bool InnerNode::update(const Key& k, const Value& v) {}
+// 更新键对应的值（在叶子节点中查找并更新
+bool LeafNode::update(const Key& k, const Value& v) {}
+```
+
+下面我将详细介绍查询操作和更新操作涉及到的函数：
+
+**FPTree::find()**
+
+这个函数完成的工作如下：
+
+- 调用根节点的find()函数
+
+**InnerNode::find()**
+
+这个函数的功能如下：
+
+- 递归向下寻找键所在的叶子节点
+- 找到相应叶子节点后调用叶子节点的find()函数
+
+**LeafNode::find()**
+
+这个函数的功能如下：
+
+- 在当前叶子节点中按照键查找bit为1的位置，直到找到键对应的值并返回
+
+**FPTree::update()**
+
+这个函数完成的工作如下：
+
+- 调用根节点的update()函数
+
+**InnerNode::update()**
+
+这个函数的功能如下：
+
+- 递归向下寻找键所在的叶子节点
+- 找到相应叶子节点后调用叶子节点的update()函数
+
+**LeafNode::update()**
+
+这个函数功能如下：
+
+- 在叶子节点中按照键查找bit为1的位置，直到找到键对应的位置，并把值修改为新的值
+
+
+
+第四阶段需要完成的工作是完成删除操作以及所有剩下TODO，对应的函数如下：
+
+```c++
+
+```
 
 ## 完成进度规划
 
