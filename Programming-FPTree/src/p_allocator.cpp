@@ -201,8 +201,8 @@ bool PAllocator::freeLeaf(PPointer p) {
     // and persist catalog
     if (startLeaf == p) {
         startLeaf = *((PPointer*)(getLeafPmemAddr(p) + (LEAF_DEGREE * 2 + 7) / 8));
+        persistCatalog();
     }
-    persistCatalog();
 
     // open the freeList file, and update it
     ofstream freeListFile((DATA_DIR + P_ALLOCATOR_FREE_LIST).c_str(), ios::out|ios::binary);

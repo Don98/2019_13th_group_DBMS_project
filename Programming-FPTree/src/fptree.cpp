@@ -3,6 +3,12 @@
 using namespace std;
 
 // Initial the new InnerNode
+// the keys num nKeys is constrainted to d <= nKeys <= 2d except root,
+// thus the child num nChild is constrainted to d + 1 <= nChile <= 2d + 1,
+// also expect root,
+// root is constrainted to 0 <= nKeys <= 2d, and 0 <= nChild <= 2d + 1,
+// but we add one buffer to keys array and childs array for some Convenience
+// when implement the insert function
 InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot) {
     this->degree = d;
     this->tree = t;
@@ -38,14 +44,25 @@ int InnerNode::findIndex(const Key& k) {
 // ======================
 // WARNING: can not insert when it has no entry
 void InnerNode::insertNonFull(const Key& k, Node* const& node) {
+	// when it has no entry, just return
     if(node == NULL || ((InnerNode*)node)->nKeys == 0) {
         printf("error: InnerNode can not insert when it has no entry\n");
         return;
     }
+    // find the position of the key to insert in key array and the position
+    // of the node to insert in child array
     int pos = findIndex(k);
+
+    // the posision of the insert key is pos, need to move the keys behind the
+    // position back one by one and the set keys[pos] as insert key, and
+    // increase the keys num nKeys
     for (int i = nKeys; i > pos; i--) keys[i] = keys[i - 1];
     keys[pos] = k;
     nKeys++;
+
+    // the posision of the insert node is pos + 1, need to move the childs
+    // behind the position back one by one and the set child[pos + 1] as
+    // insert node, and then increase the child num nChilds
     for (int i = nChild; i > pos + 1; i--) childrens[i] = childrens[i - 1];
     childrens[pos + 1] = node;
     nChild++;
@@ -58,15 +75,23 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
 
     // 1.insertion to the first leaf(only one leaf)
     if (this->isRoot && this->nKeys == 0) {
+    	// if nChild is 0, there is no leaf node, create one and insert the key
+    	// value to the leaf node, and set the new leaf node as child
         if (this->nChild == 0) {
             LeafNode* leaf_node = new LeafNode(this->tree);
             leaf_node->insert(k, v);
             this->childrens[nChild++] = leaf_node;
         } else {
+        	// if nChile is not 0, then nChile is 1, the Child must be a leaf,
+        	// insert the kv to leaf, and check the return value which
+        	// imdicate whether the leaf split, if split, then add the new leaf
+        	// to Child array and the new key to key array
             newChild = this->childrens[0]->insert(k, v);
             if (newChild != NULL) {
                 this->keys[nKeys++] = newChild->key;
                 this->childrens[nChild++] = newChild->node;
+                // note that the newChild is a keynode and be new by child, it
+                // MUST DELETE, or it will lead to MEMORY LEAK
                 delete newChild;
                 newChild = NULL;
             }
@@ -75,17 +100,29 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     }
 
     // 2.recursive insertion
+    // find the position to insert kv, and call the child insert it
     int pos = findIndex(k);
     newChild = this->childrens[pos]->insert(k, v);
+    // if the newChild return by child is not NULL, need to insert
+    // newChild's key and node to this
     if (newChild != NULL) {
         this->insertNonFull(newChild->key, newChild->node);
+        // after insert the newChild to this, delete the newChild and set
+        // the newChild as NULL
         delete newChild;
         newChild = NULL;
+        // if this's key num if greater than 2d, need to split, and return
+        // the newChild to this's parent
         if (this->nKeys > 2 * this->degree) {
             newChild = this->split();
         }
     }
 
+    // if this is root, there is no parent to handle the newChlid, so need
+    // to handle the newChild by itself
+    // need to new a InnerNode and set it to root, the only one key is
+    // newChild's key, the first child is this, the second child is newChild's
+    // node
     if (this->isRoot && newChild != NULL) {
         InnerNode* newRoot = new InnerNode(this->degree, this->tree, true);
         this->isRoot = false;
@@ -157,6 +194,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
 }
 
 KeyNode* InnerNode::split() {
+	// if needn't to split, return NULL
     if(this->nKeys <= 2*this->degree ){
         printf("error: InnerNode split innernode when not full\n");
         return NULL;
@@ -205,37 +243,68 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
     int pos = this->findIndex(k);
     ifRemove = this->childrens[pos]->remove(k, pos, this, ifDelete);
 
+    // if the needn't to delete the child, return the result whether
+    // remove key is success
     if (!ifDelete) return ifRemove;
 
+    // this occurs when the root has 2 leaf and the root and its two child
+    // has merge, when merge the root and two child, the root has 2d keys and
+    // 2d + 1 childs, but we put the nChild as 0 to indicate that the root has
+    // been merge, and the child in position nChild is the pointer of the node
+    // that call merge, delete it and return
     if (this->isRoot && this->nChild == 0) {
         this->nChild = this->nKeys + 1;
         delete this->childrens[this->nChild];
         return ifRemove;
     }
 
+    // otherwise delete the child and key that need to delete
+    // the key index is alway the same as the child index except the child to
+    // delete is at the last position, in this case, the key position is also
+    // the last position
     delete this->childrens[pos];
     int keyIdx = pos < nKeys ? pos : pos - 1;
     this->removeChild(keyIdx, pos);
 
+	// if the key num is greater or equal to degree, it needn't to go further
+	// set ifDelete to false
     if (this->nKeys >= this->degree) {
         ifDelete = false;
-    } else {
+    }
+
+    else {
+    	// if is root, it is allow that the keys is less than degree, return
         if (this->isRoot) return ifRemove;
         InnerNode* leftBro = NULL;
         InnerNode* rightBro = NULL;
+        // get the brother of this
         getBrother(index, parent, leftBro, rightBro);
+
+        // if this can redistribute of it's right brother, redistribute and set
+        // ifDelete to false
         if (rightBro != NULL && rightBro->nKeys + this->nKeys >= 2 * this->degree) {
             redistributeRight(index, rightBro, parent);
             ifDelete = false;
-        } else if (leftBro != NULL && leftBro->nKeys + this->nKeys >= 2 * this->degree) {
+        }
+		// else if this can redistribute of it's left brother, redistribute and set
+        // ifDelete to false
+        else if (leftBro != NULL && leftBro->nKeys + this->nKeys >= 2 * this->degree) {
             redistributeLeft(index, leftBro, parent);
             ifDelete = false;
-        } else {
+        }
+        // else need to delete at lease one node
+        else {
             ifDelete = true;
+            // is this is root and has only 2 leaf, it means that the key num
+            // of root is one, the key num of its two child is one d - 1 and
+            // the other d (or it the two child has already redistribute, won't
+            // go into this block), merge the root and its two child
             if (parent->isRoot && parent->nChild == 2) {
                 if (leftBro != NULL) mergeParentLeft(parent, leftBro);
                 else mergeParentRight(parent, rightBro);
-            } else {
+            }
+            // else merge the node and it's brother, prior is right
+            else {
                 if (rightBro != NULL) mergeRight(rightBro, parent->keys[index]);
                 else mergeLeft(leftBro, parent->keys[index - 1]);
             }
@@ -247,6 +316,7 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
 
 // If the leftBro and rightBro exist, the rightBro is prior to be used
 void InnerNode::getBrother(const int& index, InnerNode* const& parent, InnerNode* &leftBro, InnerNode* &rightBro) {
+	// if the index is out of bound
     if (parent == NULL || index < 0 || index >= parent->nChild) {
         leftBro = NULL;
         rightBro = NULL;
@@ -261,7 +331,9 @@ void InnerNode::getBrother(const int& index, InnerNode* const& parent, InnerNode
 }
 
 // merge this node, its parent and left brother(parent is root)
+// after the function, the keys and childs of its two child be moved to root
 void InnerNode::mergeParentLeft(InnerNode* const& parent, InnerNode* const& leftBro) {
+	// the new position of root's key is leftBro's keynum
     parent->keys[leftBro->nKeys] = parent->keys[0];
     for (int i = 0; i < leftBro->nKeys; i++) {
         parent->keys[i] = leftBro->keys[i];
@@ -277,12 +349,18 @@ void InnerNode::mergeParentLeft(InnerNode* const& parent, InnerNode* const& left
     }
     parent->nKeys = leftBro->nKeys + this->nKeys + 1;
     parent->nChild = leftBro->nChild + this->nChild;
+    // we need to delete the origin two child, but it can't delete this pointer
+    // and root has only one childs buffer now, so we delete the brother, and
+    // move this pointer to the back of root's child array, and set root's
+    // nChild to 0 to indicate that the root has been merge with its two childs
+    // and need to delete on pointer in root's 2d + 2 position
     parent->childrens[parent->nChild] = this;
     parent->nChild = 0;
     delete leftBro;
 }
 
 // merge this node, its parent and right brother(parent is root)
+// after the function, the keys and childs of its two child be moved to root
 void InnerNode::mergeParentRight(InnerNode* const& parent, InnerNode* const& rightBro) {
     parent->keys[this->nKeys] = parent->keys[0];
     for (int i = 0; i < this->nKeys; i++) {
@@ -307,6 +385,13 @@ void InnerNode::mergeParentRight(InnerNode* const& parent, InnerNode* const& rig
 // this node and its left brother redistribute
 // the left has more entries
 void InnerNode::redistributeLeft(const int& index, InnerNode* const& leftBro, InnerNode* const& parent) {
+	// redistribute the keys of this and its brother, after redistribute, the
+	// new key num is half of the sum of this and its brother's key num
+	// nedd to move moveKeys from left to right
+	// but CAUTIOUS that the key of parent in position index need to update
+	// it means that when redistribute, the keys order is
+	// [leftBro's keys] [parent key in index] [this' keys]
+	// we need to move the keys by order
     int moveKeys = (leftBro->nKeys + this->nKeys) / 2 - leftBro->nKeys;
     for (int i = nKeys - 1; i >= 0; i--) {
         this->keys[i + moveKeys] = this->keys[i];
@@ -390,8 +475,10 @@ void InnerNode::mergeRight(InnerNode* const& rightBro, const Key& k) {
 
 // remove a children from the current node, used by remove func
 void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
+	// index out of bound
     if (keyIdx < 0 || keyIdx >= this->nKeys || childIdx < 0 || childIdx >= nChild) {
         printf("error: InnerNode removeChild with index out of bound\n");
+        return;
     }
     for (int i = keyIdx; i < nKeys - 1; i++) {
         this->keys[i] = this->keys[i + 1];
@@ -463,20 +550,25 @@ LeafNode::LeafNode(FPTree* t) {
     this->degree = LEAF_DEGREE;
     this->isLeaf = true;
 
+    // get a leaf from pAllocator
+    // if fail to get a leaf, return
     PAllocator* palloc = PAllocator::getAllocator();
     PPointer ppt;
     char* pmem_addr;
     if (!palloc->getLeaf(ppt, pmem_addr)) {
         printf("error：LeafNode get leaf fail\n");
+        return;
     }
 
     this->bitmapSize = (LEAF_DEGREE * 2 + 7) / 8;
+    // set the pointer pointed to NVM address
     this->pmem_addr = pmem_addr;
     this->bitmap = (Byte*) pmem_addr;
     this->pNext = (PPointer*)(this->bitmap + bitmapSize);
     this->fingerprints = (Byte*)(this->pNext + 1);
     this->kv = (KeyValue*)(this->fingerprints + LEAF_DEGREE * 2);
 
+    // the DRAM relative variables
     this->n = 0;
     this->prev = NULL;
     this->next = NULL;
@@ -508,7 +600,7 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
 
     this->n = 0;
     for (uint64_t i = 0; i < bitmapSize; ++ i) {
-        this->n += countOneBits(*(this->bitmap + i));
+        this->n += countOneBits(this->bitmap[i]);
     }
 
     this->prev = NULL;
@@ -518,6 +610,7 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
 
 }
 
+// persist the leaf when destruct
 LeafNode::~LeafNode() {
     persist();
 }
@@ -539,8 +632,10 @@ void LeafNode::insertNonFull(const Key& k, const Value& v) {
         printf("error: LeafNode insertNotFull when it is full.\n");
         return;
     }
-    *(this->bitmap + pos / 8) |= (1 << (7 - pos % 8));
-    *(this->fingerprints + pos) = keyHash(k);
+    // bit operation to set the pos bit of bitmap to 1
+    this->bitmap[pos / 8] |= (1 << (7 - pos % 8));
+
+    this->fingerprints[pos] = keyHash(k);
     this->kv[pos].k = k;
     this->kv[pos].v = v;
     this->n++;
@@ -549,11 +644,20 @@ void LeafNode::insertNonFull(const Key& k, const Value& v) {
 
 // split the leaf node
 KeyNode* LeafNode::split() {
+	// if this' key num is less than 2d, needn't to split
+	if (this->n < 2 * this->degree) {
+		return NULL;
+	}
+
     KeyNode* newChild = new KeyNode();
     LeafNode* newNode = new LeafNode(this->tree);
     Key midKey = findSplitKey();
 
     memset(newNode->bitmap, 0, bitmapSize);
+    // find the keys greater or equal to split key to new leaf and move
+    // when move the key vaule, it need to set the same position of new leaf's
+    // bitmap bit to 1, and copy the fingerprints and kv of the position to
+    // new leaf's same position, at last set this' bitmap bit to 0
     for (int i = 0; i < this->degree * 2; i++) {
         if (this->kv[i].k >= midKey) {
             newNode->bitmap[i / 8] |= (1 << (7 - (i % 8)));
@@ -563,18 +667,22 @@ KeyNode* LeafNode::split() {
         }
     }
 
+    // after split,
     newNode->n = this->degree;
     this->n = this->degree;
 
+    // set the pNext link
     PPointer pt = *(this->pNext);
     *(this->pNext) = newNode->pPointer;
     *(newNode->pNext) = pt;
 
+    // set the prev link
     newNode->prev = this;
     if (this->next != NULL) {
         this->next->prev = newNode;
     }
 
+    // set the next link
     LeafNode* tmp = this->next;
     this->next = newNode;
     newNode->next = tmp;
@@ -582,6 +690,7 @@ KeyNode* LeafNode::split() {
     newChild->key = midKey;
     newChild->node = newNode;
 
+    // after modify the leaf, need to persist
     this->persist();
     newNode->persist();
 
@@ -629,6 +738,7 @@ PPointer LeafNode::getPPointer() {
 bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete) {
     bool ifRemove = false;
 
+    // find the position of the move key
     Byte hash = keyHash(k);
     int pos = -1;
     for (int i = 0; i < this->degree * 2; ++ i) {
@@ -641,17 +751,20 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
             }
         }
     }
-
+ 	// if the move key is in the leaf, set the pos bit to 0
     if (pos >= 0 && pos < 2 * this->degree) {
         this->bitmap[pos / 8] &= ~(1 << (7 - pos % 8));
         this->n--;
         this->persist();
         ifRemove = true;
         ifDelete = false;
+        // if it has no entry after removement set ifDelete to TRUE to indicate
+        // outer func to delete this leaf.
         if (this->n == 0) {
             PAllocator* palloc = PAllocator::getAllocator();
             if (!palloc->freeLeaf(this->pPointer)) {
                 printf("error: in LeafNode::remove -> PAllocator::freeLeaf\n");
+                // TODO throw an error
             }
             ifDelete = true;
         }
@@ -784,6 +897,7 @@ Value FPTree::find(Key k) {
 // call the InnerNode and LeafNode print func to print the whole tree
 // TIPS: use Queue
 void FPTree::printTree() {
+	// level first traverse
     queue<NodeLevel> q;
     int maxLevel = 0;
     NodeLevel cur, tmp;
@@ -817,12 +931,15 @@ void FPTree::printTree() {
 bool FPTree::bulkLoading() {
     PAllocator* palloc = PAllocator::getAllocator();
     PPointer ppt = palloc->getStartPointer();
+    // if the start point is not used, the tree is empty
+    // return false
     if (!palloc->ifLeafUsed(ppt)) {
         return false;
     }
 
     LeafNode* old_leaf = NULL;
 
+    // traverse all the leaves by order, and insert the leaf to tree
     while (palloc->ifLeafUsed(ppt)) {
         LeafNode* leaf = new LeafNode(ppt, this);
         Key minKey = MAX_KEY;
@@ -837,6 +954,7 @@ bool FPTree::bulkLoading() {
         kn.key = minKey;
         kn.node = leaf;
 
+        // set the leaf's prev and next pointer
         leaf->prev = old_leaf;
         if (old_leaf != NULL) {
             old_leaf->next = leaf;
