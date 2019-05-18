@@ -14,7 +14,7 @@
     - [leveldb安装](#leveldb安装)
     - [leveldb使用](#leveldb安装)
 - [使用lycsb测试leveldb](#使用lycsb测试leveldb)
-- [fptree性能测试](#fptree性能测试)
+- [fptree的ycsb性能测试](#fptree的ycsb性能测试)
 - [总结](#总结)
 
 ## ycsb介绍
@@ -161,7 +161,8 @@ make testleveldb
 使用220w-rw-50-50-load.txt和220w-rw-50-50-run.txt测试结果如图：
 ![](./asset/lycsb_test_220w_rw_50_50.png)
 
-## fptree性能测试
+
+## fptree的ycsb性能测试
 以lyscb测试leveldb为例，我们可以以类似的代码流程来测试fptree的性能。
 
 我们以leveldb为性能标准，在ycsb.cpp文件中同时以相同的workload文件测试fptree和leveldb，在已经写好的ycsb.cpp文件中默认为220w条目的workload,
