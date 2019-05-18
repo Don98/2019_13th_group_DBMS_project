@@ -826,7 +826,7 @@ int LeafNode::findFirstZero() {
 // persist the entire leaf
 // use PMDK
 void LeafNode::persist() {
-    if (pmem_is_pmem(this->pmem_addr, calLeafSize())) {
+    if (PAllocator::getAllocator()->ifPmemAddr(this->pPointer)) {
         pmem_persist(this->pmem_addr, calLeafSize());
     } else {
         pmem_msync(this->pmem_addr, calLeafSize());

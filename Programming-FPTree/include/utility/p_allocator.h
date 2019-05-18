@@ -13,11 +13,12 @@ class PAllocator {
 private:
     static PAllocator*   pAllocator;    // singleton
     PPointer             startLeaf;     // first leaf's PPointer of fptree
-    uint64_t             maxFileId;     // current fileId not used 
-    //maxFileId是下一个可用的FileId，maxfileid是单前还没分配的标号，比如4的话就说明1-3都被分配了，4是还没被分配的
+    uint64_t             maxFileId;     // current fileId not used
+    //maxFileId是下一个可用的FileId，maxfileid是当前还没分配的标号，比如4的话就说明1-3都被分配了，4是还没被分配的
     uint64_t             freeNum;       // free leaves amount
     vector<PPointer>     freeList;      // leaves list: the leaf that has been allocatored but is free
     map<uint64_t, char*> fId2PmAddr;    // the map of fileId to pmem address
+    map<uint64_t, int> fId2IsPmAddr;    // the map of fileId to address in memory is pmem
 
     void initFilePmemAddr();            // initial the fId2PmAddr
 public:
@@ -33,7 +34,9 @@ public:
     bool     ifLeafUsed(PPointer p);   // judge whether the leaf is used
     bool     ifLeafFree(PPointer p);   // judge whether the leaf is free
     bool     ifLeafExist(PPointer p);  // judge whether the leaf exists
-    
+    bool     ifPmemAddr(PPointer p);
+    bool     ifPmemAddr(uint64_t fileId);
+
     bool     persistCatalog();         // persist the catalog file in NVM/SSD
 
     PPointer getUsedLeaf(int idx);

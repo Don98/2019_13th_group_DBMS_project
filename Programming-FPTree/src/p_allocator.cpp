@@ -72,7 +72,7 @@ consider user samrt pointer or other method to fixed
 PAllocator::~PAllocator() {
     persistCatalog();
     for (uint64_t i = 1; i < maxFileId; ++ i) {
-        if (pmem_is_pmem(fId2PmAddr[i], LEAF_GROUP_HEAD + LEAF_GROUP_AMOUNT * calLeafSize())) {
+        if (ifPmemAddr(i)) {
             pmem_persist(fId2PmAddr[i], LEAF_GROUP_HEAD + LEAF_GROUP_AMOUNT * calLeafSize());
         } else {
             pmem_msync(fId2PmAddr[i], LEAF_GROUP_HEAD + LEAF_GROUP_AMOUNT * calLeafSize());
@@ -98,6 +98,7 @@ void PAllocator::initFilePmemAddr() {
             exit(1);
         }
         fId2PmAddr.insert(pair<uint64_t,char*>(i, pmem_addr));
+        fId2IsPmAddr.insert(pair<uint64_t,int>(i, is_pmem));
     }
 }
 
@@ -107,6 +108,16 @@ char* PAllocator::getLeafPmemAddr(PPointer p) {
         return fId2PmAddr[p.fileId] + p.offset;
     }
     return NULL;
+}
+
+bool PAllocator::ifPmemAddr(PPointer p) {
+    if (fId2IsPmAddr.count(p.fileId) == 0) return false;
+    return fId2IsPmAddr[p.fileId];
+}
+
+bool PAllocator::ifPmemAddr(uint64_t fileId) {
+    if (fId2IsPmAddr.count(fileId) == 0) return false;
+    return fId2IsPmAddr[fileId];
 }
 
 // get and use a leaf for the fptree leaf allocation
@@ -141,7 +152,7 @@ bool PAllocator::getLeaf(PPointer &p, char* &pmem_addr) {
 
     // initial the leaf as 0, maybe can remove this initial step
     memset(pmem_addr, 0, calLeafSize());
-    if (pmem_is_pmem(pmem_addr, calLeafSize())) {
+    if (ifPmemAddr(p)) {
         pmem_persist(pmem_addr, calLeafSize());
     } else {
         pmem_msync(pmem_addr, calLeafSize());
@@ -155,7 +166,7 @@ bool PAllocator::getLeaf(PPointer &p, char* &pmem_addr) {
     (*pt)++;
     Byte* bitmap_pt = (Byte*) (pt + 1);
     bitmap_pt[(p.offset-LEAF_GROUP_HEAD)/calLeafSize()] = 1;
-    if (pmem_is_pmem(leaf_group_pt, LEAF_GROUP_HEAD)) {
+    if (ifPmemAddr(p.fileId)) {
         pmem_persist(leaf_group_pt, LEAF_GROUP_HEAD);
     } else {
         pmem_msync(leaf_group_pt, LEAF_GROUP_HEAD);
@@ -224,7 +235,7 @@ bool PAllocator::freeLeaf(PPointer p) {
     Byte* bitmap_pt = (Byte*) (pt + 1);
     bitmap_pt[(p.offset-LEAF_GROUP_HEAD)/calLeafSize()] = 0;
 
-    if (pmem_is_pmem(leaf_group_pt, LEAF_GROUP_HEAD)) {
+    if (ifPmemAddr(p.fileId)) {
         pmem_persist(leaf_group_pt, LEAF_GROUP_HEAD);
     } else {
         pmem_msync(leaf_group_pt, LEAF_GROUP_HEAD);
@@ -269,6 +280,7 @@ bool PAllocator::newLeafGroup() {
 
     // add the new fileid and pmem addr to fId2PmAddr
     fId2PmAddr[maxFileId] = pmem_addr;
+    fId2IsPmAddr[maxFileId] = is_pmem;
     memset(pmem_addr, 0, mapped_len);
 
     // add the new free leaves to free list and store them in free list file
