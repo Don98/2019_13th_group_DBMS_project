@@ -44,7 +44,7 @@ int InnerNode::findIndex(const Key& k) {
 // ======================
 // WARNING: can not insert when it has no entry
 void InnerNode::insertNonFull(const Key& k, Node* const& node) {
-	// when it has no entry, just return
+    // when it has no entry, just return
     if(node == NULL || ((InnerNode*)node)->nKeys == 0) {
         printf("error: InnerNode can not insert when it has no entry\n");
         return;
@@ -75,17 +75,17 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
 
     // 1.insertion to the first leaf(only one leaf)
     if (this->isRoot && this->nKeys == 0) {
-    	// if nChild is 0, there is no leaf node, create one and insert the key
-    	// value to the leaf node, and set the new leaf node as child
+        // if nChild is 0, there is no leaf node, create one and insert the key
+        // value to the leaf node, and set the new leaf node as child
         if (this->nChild == 0) {
             LeafNode* leaf_node = new LeafNode(this->tree);
             leaf_node->insert(k, v);
             this->childrens[nChild++] = leaf_node;
         } else {
-        	// if nChile is not 0, then nChile is 1, the Child must be a leaf,
-        	// insert the kv to leaf, and check the return value which
-        	// imdicate whether the leaf split, if split, then add the new leaf
-        	// to Child array and the new key to key array
+            // if nChile is not 0, then nChile is 1, the Child must be a leaf,
+            // insert the kv to leaf, and check the return value which
+            // imdicate whether the leaf split, if split, then add the new leaf
+            // to Child array and the new key to key array
             newChild = this->childrens[0]->insert(k, v);
             if (newChild != NULL) {
                 this->keys[nKeys++] = newChild->key;
@@ -194,7 +194,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
 }
 
 KeyNode* InnerNode::split() {
-	// if needn't to split, return NULL
+    // if needn't to split, return NULL
     if(this->nKeys <= 2*this->degree ){
         printf("error: InnerNode split innernode when not full\n");
         return NULL;
@@ -266,14 +266,14 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
     int keyIdx = pos < nKeys ? pos : pos - 1;
     this->removeChild(keyIdx, pos);
 
-	// if the key num is greater or equal to degree, it needn't to go further
-	// set ifDelete to false
+    // if the key num is greater or equal to degree, it needn't to go further
+    // set ifDelete to false
     if (this->nKeys >= this->degree) {
         ifDelete = false;
     }
 
     else {
-    	// if is root, it is allow that the keys is less than degree, return
+        // if is root, it is allow that the keys is less than degree, return
         if (this->isRoot) return ifRemove;
         InnerNode* leftBro = NULL;
         InnerNode* rightBro = NULL;
@@ -286,7 +286,7 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
             redistributeRight(index, rightBro, parent);
             ifDelete = false;
         }
-		// else if this can redistribute of it's left brother, redistribute and set
+        // else if this can redistribute of it's left brother, redistribute and set
         // ifDelete to false
         else if (leftBro != NULL && leftBro->nKeys + this->nKeys >= 2 * this->degree) {
             redistributeLeft(index, leftBro, parent);
@@ -316,7 +316,7 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
 
 // If the leftBro and rightBro exist, the rightBro is prior to be used
 void InnerNode::getBrother(const int& index, InnerNode* const& parent, InnerNode* &leftBro, InnerNode* &rightBro) {
-	// if the index is out of bound
+    // if the index is out of bound
     if (parent == NULL || index < 0 || index >= parent->nChild) {
         leftBro = NULL;
         rightBro = NULL;
@@ -333,7 +333,7 @@ void InnerNode::getBrother(const int& index, InnerNode* const& parent, InnerNode
 // merge this node, its parent and left brother(parent is root)
 // after the function, the keys and childs of its two child be moved to root
 void InnerNode::mergeParentLeft(InnerNode* const& parent, InnerNode* const& leftBro) {
-	// the new position of root's key is leftBro's keynum
+    // the new position of root's key is leftBro's keynum
     parent->keys[leftBro->nKeys] = parent->keys[0];
     for (int i = 0; i < leftBro->nKeys; i++) {
         parent->keys[i] = leftBro->keys[i];
@@ -385,13 +385,13 @@ void InnerNode::mergeParentRight(InnerNode* const& parent, InnerNode* const& rig
 // this node and its left brother redistribute
 // the left has more entries
 void InnerNode::redistributeLeft(const int& index, InnerNode* const& leftBro, InnerNode* const& parent) {
-	// redistribute the keys of this and its brother, after redistribute, the
-	// new key num is half of the sum of this and its brother's key num
-	// nedd to move moveKeys from left to right
-	// but CAUTIOUS that the key of parent in position index need to update
-	// it means that when redistribute, the keys order is
-	// [leftBro's keys] [parent key in index] [this' keys]
-	// we need to move the keys by order
+    // redistribute the keys of this and its brother, after redistribute, the
+    // new key num is half of the sum of this and its brother's key num
+    // nedd to move moveKeys from left to right
+    // but CAUTIOUS that the key of parent in position index need to update
+    // it means that when redistribute, the keys order is
+    // [leftBro's keys] [parent key in index] [this' keys]
+    // we need to move the keys by order
     int moveKeys = (leftBro->nKeys + this->nKeys) / 2 - leftBro->nKeys;
     for (int i = nKeys - 1; i >= 0; i--) {
         this->keys[i + moveKeys] = this->keys[i];
@@ -475,7 +475,7 @@ void InnerNode::mergeRight(InnerNode* const& rightBro, const Key& k) {
 
 // remove a children from the current node, used by remove func
 void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
-	// index out of bound
+    // index out of bound
     if (keyIdx < 0 || keyIdx >= this->nKeys || childIdx < 0 || childIdx >= nChild) {
         printf("error: InnerNode removeChild with index out of bound\n");
         return;
@@ -644,37 +644,46 @@ void LeafNode::insertNonFull(const Key& k, const Value& v) {
 
 // split the leaf node
 KeyNode* LeafNode::split() {
-	// if this' key num is less than 2d, needn't to split
-	if (this->n < 2 * this->degree) {
-		return NULL;
-	}
+    // if this' key num is less than 2d, needn't to split
+    if (this->n < 2 * this->degree) {
+        return NULL;
+    }
 
     KeyNode* newChild = new KeyNode();
     LeafNode* newNode = new LeafNode(this->tree);
     Key midKey = findSplitKey();
 
-    memset(newNode->bitmap, 0, bitmapSize);
+    Byte newBitmap[(LEAF_DEGREE * 2 + 7) / 8];
+    memset(newBitmap, 0, bitmapSize);
+
+
     // find the keys greater or equal to split key to new leaf and move
     // when move the key vaule, it need to set the same position of new leaf's
     // bitmap bit to 1, and copy the fingerprints and kv of the position to
     // new leaf's same position, at last set this' bitmap bit to 0
     for (int i = 0; i < this->degree * 2; i++) {
         if (this->kv[i].k >= midKey) {
-            newNode->bitmap[i / 8] |= (1 << (7 - (i % 8)));
+            newBitmap[i / 8] |= (1 << (7 - (i % 8)));
             newNode->fingerprints[i] = this->fingerprints[i];
             newNode->kv[i] = this->kv[i];
-            this->bitmap[i / 8] &= (~(1 << (7 - i % 8)));
         }
     }
+
+    for (int i = 0; i < bitmapSize; ++ i) {
+        newNode->bitmap[i] = newBitmap[i];
+    }
+    *(newNode->pNext) = *(this->pNext);
+    newNode->persist();
+
+    for (int i = 0; i < bitmapSize; ++ i) {
+        this->bitmap[i] = ~newBitmap[i];
+    }
+    *(this->pNext) = newNode->pPointer;
+    this->persist();
 
     // after split,
     newNode->n = this->degree;
     this->n = this->degree;
-
-    // set the pNext link
-    PPointer pt = *(this->pNext);
-    *(this->pNext) = newNode->pPointer;
-    *(newNode->pNext) = pt;
 
     // set the prev link
     newNode->prev = this;
@@ -683,16 +692,11 @@ KeyNode* LeafNode::split() {
     }
 
     // set the next link
-    LeafNode* tmp = this->next;
+    newNode->next = this->next;
     this->next = newNode;
-    newNode->next = tmp;
 
     newChild->key = midKey;
     newChild->node = newNode;
-
-    // after modify the leaf, need to persist
-    this->persist();
-    newNode->persist();
 
     return newChild;
 }
@@ -714,10 +718,10 @@ Key LeafNode::findSplitKey() {
 
 // get the targte bit in bitmap
 // TIPS: bit operation
+// return 0 if bit at idx is 0, otherwise non zero
 int LeafNode::getBit(const int& idx) {
     if (idx < 0 || idx >= this->degree * 2) return 0;
-    Byte byte = this->bitmap[idx / 8];
-    return (byte & (1 << (7 - idx % 8))) != 0;
+    return (this->bitmap[idx / 8] & (1 << (7 - idx % 8))) == 0 ? 0 : 1;
 }
 
 Key LeafNode::getKey(const int& idx) {
@@ -740,21 +744,16 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
 
     // find the position of the move key
     Byte hash = keyHash(k);
-    int pos = -1;
-    for (int i = 0; i < this->degree * 2; ++ i) {
-        if (getBit(i)) {
-            if (hash == this->fingerprints[i]) {
-                if (k == this->kv[i].k) {
-                    pos = i;
-                    break;
-                }
-            }
+    int pos;
+    for (pos = 0; pos < this->degree * 2; ++ pos) {
+        if (getBit(pos) && hash == this->fingerprints[pos]) {
+            if (k == this->kv[pos].k) break;
         }
     }
- 	// if the move key is in the leaf, set the pos bit to 0
+    // if the move key is in the leaf, set the pos bit to 0
     if (pos >= 0 && pos < 2 * this->degree) {
-        this->bitmap[pos / 8] &= ~(1 << (7 - pos % 8));
         this->n--;
+        this->bitmap[pos / 8] &= ~(1 << (7 - pos % 8));
         this->persist();
         ifRemove = true;
         ifDelete = false;
@@ -778,13 +777,11 @@ bool LeafNode::update(const Key& k, const Value& v) {
     bool ifUpdate = false;
     Byte hash = keyHash(k);
     for (int i = 0; i < this->degree * 2; ++ i) {
-        if (getBit(i)) {
-            if (hash == this->fingerprints[i]) {
-                if (k == this->kv[i].k) {
-                    this->kv[i].v = v;
-                    ifUpdate = true;
-                    break;
-                }
+        if (getBit(i) && hash == this->fingerprints[i]) {
+            if (k == this->kv[i].k) {
+                this->kv[i].v = v;
+                ifUpdate = true;
+                break;
             }
         }
     }
@@ -795,11 +792,9 @@ bool LeafNode::update(const Key& k, const Value& v) {
 Value LeafNode::find(const Key& k) {
     Byte hash = keyHash(k);
     for (int i = 0; i < this->degree * 2; ++ i) {
-        if (getBit(i)) {
-            if (hash == this->fingerprints[i]) {
-                if (k == this->kv[i].k) {
-                    return this->kv[i].v;
-                }
+        if (getBit(i) && hash == this->fingerprints[i]) {
+            if (k == this->kv[i].k) {
+                return this->kv[i].v;
             }
         }
     }
@@ -808,19 +803,11 @@ Value LeafNode::find(const Key& k) {
 
 // find the first empty slot
 int LeafNode::findFirstZero() {
-    Byte byte;
-    int pos = -1;
-    for (uint64_t i = 0; i < this->bitmapSize; ++ i) {
-        if (pos != -1) break;
-        byte = this->bitmap[i];
-        for (int j = 0; j < 8; ++ j) {
-            if ((~byte) & (1 << (7 - j))) {
-                pos = i * 8 + j;
-                break;
-            }
-        }
+    int i;
+    for (i = 0; i < this->degree * 2; ++ i) {
+        if (!getBit(i)) break;
     }
-    return pos;
+    return i;
 }
 
 // persist the entire leaf
@@ -897,7 +884,7 @@ Value FPTree::find(Key k) {
 // call the InnerNode and LeafNode print func to print the whole tree
 // TIPS: use Queue
 void FPTree::printTree() {
-	// level first traverse
+    // level first traverse
     queue<NodeLevel> q;
     int maxLevel = 0;
     NodeLevel cur, tmp;

@@ -18,18 +18,16 @@ class LeafNode;
 class Node {
 protected:
     friend class FPTree;
-    
+
     FPTree* tree;     // the tree that the node belongs to
     int     degree;   // the degree of the node
     bool    isLeaf;   // judge whether the node is leaf
-    // bool    isEmpty;  // judge whether the node is empty  //thanos
 public:
     virtual ~Node() {}
 
     FPTree* getTree() { return tree; }
 
     bool    ifLeaf() { return isLeaf; }
-    // bool    ifEmpty() { return ifEmpty; }
     virtual KeyNode* insert(const Key& k, const Value& v) = 0;
     virtual KeyNode* split() = 0;
     virtual bool remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete) = 0;
@@ -52,7 +50,7 @@ typedef struct t_NodeLevel {
     int level;
 } NodeLevel;
 
-// 
+//
 typedef struct t_KeyValue {
     Key k;
     Value v;
@@ -96,7 +94,7 @@ public:
     bool     remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete);
     bool     update(const Key& k, const Value& v);
     Value    find(const Key& k);
-    
+
     KeyNode* split();
     void     removeChild(const int& KeyIdx, const int& childIdx);
 
@@ -110,7 +108,7 @@ public:
 
 /*
 -------------------------------------------------------------
-| bitmap | pNext | fingerprints | KV = [(k1,v1),...(kn,vn)] | 
+| bitmap | pNext | fingerprints | KV = [(k1,v1),...(kn,vn)] |
 -------------------------------------------------------------
 */
 // LeafNode structure is the leaf node in NVM that is buffered in the DRAM.
@@ -131,11 +129,11 @@ private:
 
     // the DRAM relative variables
     int        n;              // amount of entries
-    LeafNode*  prev;           // the address of previous leafnode      
-    LeafNode*  next;           // the address of next leafnode  
+    LeafNode*  prev;           // the address of previous leafnode
+    LeafNode*  next;           // the address of next leafnode
     PPointer   pPointer;        // the persistent pointer pointed to the leaf in NVM
     string     filePath;        // the file path of the leaf
-    
+
     uint64_t   bitmapSize;      // the bitmap size of the leaf(bytes)
 
 public:
