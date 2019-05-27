@@ -7,7 +7,7 @@ leveldb是google的一个键值存储系统，github仓库见https://github.com/
 FPTree是Oukid提出的一种适用于SCM(Storage Class Memory)的一类新型的B树，详见前期工作与论文阅读总结文件夹下的Oukid_FPTree.pdf论文。
 
 ## FPTreeDB键值存储系统
-fptree的实现源码见Programming-FPtree目录下的src和include目录，系统的设计见[Programming-FPtree目录下的READMD](./Programming-FPtree/README.md)，更为详细的代码说明见[Programming-FPtree目录下的函数实现](./Programming-FPtree/函数实现.md)
+fptree的实现源码见Programming-FPTree目录下的src和include目录，系统的设计见[Programming-FPTree目录下的READMD](./Programming-FPTree/README.md)，更为详细的代码说明见[Programming-FPTree目录下的函数实现](./Programming-FPTree/函数实现.md)
 
 ## FPTree 安装与测试
 ### 下载
@@ -16,7 +16,7 @@ git clone https://github.com/Don98/2019_13th_group_DBMS_project.git
 ```
 ### 编译
 ```
-cd 2019_13th_group_DBMS_project/Programming-FPtree/src
+cd 2019_13th_group_DBMS_project/Programming-FPTree/src
 make
 ```
 
@@ -24,7 +24,7 @@ make
 测试前注意将/mnt/mem目录设为pmem目录路径
 
 具体说明见[fptree性能测试](fptree性能测试.md)
-先进入Programming-FPtree/src目录，测试命令为
+先进入Programming-FPTree/src目录，测试命令为
 ```
 sudo make testfptree
 ```
@@ -32,7 +32,7 @@ sudo make testfptree
 ### google test 测试
 测试前注意将/mnt/mem目录设为pmem目录路径
 
-先进入Programming-FPtree/src目录，测试命令为(注意sudo)
+先进入Programming-FPTree/src目录，测试命令为(注意sudo)
 ```
 make
 sudo ./bin/utility_test
