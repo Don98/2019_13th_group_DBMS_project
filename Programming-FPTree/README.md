@@ -1,10 +1,8 @@
-
-
 # 代码框架讲解
-下面针对框架中的每一个主要对象以及其组成进行实现说明，规定相关细节。**假设在阅读下面的讲解和代码的注释后对框架实现依然有不懂的问题，可大胆向TA提出或者在github的issue里提出，TA会相应更新进行说明**。推荐issue提问题，熟悉github的issue操作，也可以同时解决别人相关的问题。所以**有问题的时候先找百度和github的issue** ，不能解决再问TA。**假设重复问了issue提及的问题，酌情扣分处理**。
+下面针对框架中的每一个主要对象以及其组成进行实现说明，关于代码中各个函数的具体实现请看[函数实现](函数实现.md)和源码。
 
 ## 相关知识
-本次课程设计会教会大家很多基本知识，不了解的自行百度，详情如下:
+本次课程设计会涉及很多基本知识，详情如下:
 1. 键值数据库系统
 2. 数据库Benchmark(YCSB, TPC-C等)
 3. makefile
@@ -13,12 +11,6 @@
 6. NVM编程(使用PMDK)
 7. FPTree数据结构
 
-## 评分标准
-1. 所有功能是否正常无bug
-2. 所有测试是否通过
-3. 代码风格是否美观
-4. 代码是否包含必要的注释
-5. 是否有完整的系统说明书(即README介绍)
 
 ## FPTreeDB键值存储系统
 本次课程设计基于针对NVM优化的数据结构FPTree，实现一个简单的键值存储引擎FPTreeDB。我们通过将其包装成一个调用库，供用户程序使用并管理其数据存储，与LevelDB的使用方式类似。  
@@ -34,17 +26,7 @@
 ![FPTreeDB架构](../asset/FPTreeDB.png)
 
 ## 说明
-只需根据我在代码中留下的注释TODO和下面说明进行填充实现，通过简单的单元测试就可以完成。本次实现的是FPTree的单线程版本，不需要做FPTree的日志机制，走通操作流程就行。  
-需要做的：
-1. 单线程版本的FPTree
-2. NVM相关编程
-
-不需要做的：
-1. 多线程版本FPTree
-2. FPTree的micro-log
-3. HTM并行机制
-
-项目目录说明(不要改动文件的存放位置，可以自由增添文件至规定文件夹)：  
+项目目录说明
 ```
 |__gtest: 为Google Test项目目录，不用管  
 |__include: 里包含所有用到的头文件  
@@ -59,11 +41,11 @@
       |__main: main.cpp的可执行文件
       |__lycsb: lycsb.cpp的可执行文件
       |__ycsb: ycsb.cpp的可执行文件
-   |__fptree.cpp: fptree的源文件，项目核心文件(TODO)  
+   |__fptree.cpp: fptree的源文件，项目核心文件
    |__clhash.c: 指纹计算的哈希函数源文件  
-   |__p_allocator.cpp: NVM内存分配器源文件(TODO)  
-   |__lycsb.cpp: LevelDB的YCSB测试代码(TODO)  
-   |__ycsb.cpp: FPTreeDB和LevelDB的YCSB对比测试代码(TODO)  
+   |__p_allocator.cpp: NVM内存分配器源文件 
+   |__lycsb.cpp: LevelDB的YCSB测试代码
+   |__ycsb.cpp: FPTreeDB和LevelDB的YCSB对比测试代码
    |__makefile: src下项目的编译文件  
 |__workloads: 为YCSB测试负载文件，用于YCSB Benchmark测试  
    |__数据量-rw-读比例-写比例-load.txt: YCSB测试数据库装载文件  
@@ -78,33 +60,13 @@
 ```
 
 对于FPTree实现，总体理解其实很简单，可以如下理解：
-1. 对于FPTree的中间节点实现，大家完全照搬书本B+tree实现理解即可，实现也以课本伪代码为参考。
+1. 对于FPTree的中间节点实现，模仿B+tree实现理解即可，实现也以课本伪代码为参考。
 2. 对于FPTree的叶子节点，其特殊只在其结构上，并且要用PMDK与NVM进行数据交互，其基本操作与论文的去掉加锁并行后的伪代码一致。
 3. 对于PAllocator，就是一个叶子的持久化指针和文件空间分配器，承担叶子文件的映射打开工作。
-## 推荐工具
-VSCODE，有gdb调试功能，自学，调试时打开文件用绝对路径否则出错。自带git管理插件，可以方便使用git。下载TODO插件可以高亮需要做的TODO。
-
-## 工作
-1. 各模块代码以及单元测试代码的编译(单元测试样例编译可以参考[gtest仓库的示例makefile](https://github.com/google/googletest/blob/master/googletest/make/Makefile))
-2. cpp源代码的填写实现(TODO注释标明)
-
-## 实现步骤
-1. 编写系统说明书，说明自己的实现时间计划和系统的基本说明，让第三方能看懂
-2. 自行编译安装[LevelDB](https://github.com/google/leveldb)，编写利用ycsb测试代码，测试levelDB性能(帮助了解FPTreeDB与LevelDB的使用方式类似)
-3. 根据说明和注释完成cpp源文件和编译命令(**使用c++11标准编译**)
-4. 编译main和所有的测试代码，通过所有单元测试
-5. 利用ycsb测试代码，读取workload的操作，对FPTree进行性能测试，与LevelDB对比
-6. 完成实验报告
-
-**硬性时间要求(branch过截止日期后请不要修改，否则扣分处理)**：
-1. 系统说明书，PAllocator实现并通过utility测试，LevelDB的使用以及测试，对应lycsb.cpp，p_allocator.cpp的实现和运行，utility_test.cpp的运行 --- 5/4晚前发布v1版本branch(不会分支的自学)(20分)
-2. FPTreeDB插入和重载操作并通过相关测试，对应fptree.cpp的实现和fptree_test.cpp部分的运行 --- 5/11晚前发布v2版本branch(30分)
-3. FPTreeDB查询和更新操作并通过相关测试，对应fptree.cpp的实现和fptree_test.cpp部分的运行 --- 5/18晚前发布v3版本branch(10分)
-4. FPTreeDB删除操作和所有剩下实现以及测试，对应fptree.cpp的实现和fptree_test.cpp所有的运行 --- 5/31晚前发布final版本branch，作为最后发布版本(40分)
 
 ---
 ## PMDK
-这次课程设计使用的是PMDK的libpmem库，这是其最基本的一个库，FPTree中所有涉及NVM的操作利用其进行。编程要用到的函数如下：
+这次课程设计使用的是PMDK的libpmem库，这是其最基本的一个库，pmem映射部分见根目录下的前期工作与论文总结文件夹里的相关文件，FPTree中所有涉及NVM的操作利用其进行。编程要用到的函数如下：
 1. pmem_map_file：打开并映射文件
 2. pmem_persist：持久化对NVM内容的修改
 
@@ -114,13 +76,13 @@ YCSB大体上分两个步，第一步是读取load文件，插入一定量的数
 ```
 INSERT 6284781860667377211
 ```
-上面INSERT表示插入操作，后面是键值。因为FPTreeDB键值对为8bytes-8bytes，所以**只需取这个值的前8字节即可**。为了简单起见，**键和值取相同即可**。所以请按上述要求和说明实现lycsb和ycsb的运行代码。
+上面INSERT表示插入操作，后面是键值。因为FPTreeDB键值对为8bytes-8bytes，所以**只需取这个值的前8字节即可**。为了简单起见，**键和值取相同即可**。测试结果见项目根目录下的fptree性能测试。
 
 ## Google Test单元测试
-单元测试的源文件在test文件夹下，每个测试的名称对应其要测试的目标函数和功能，上面介绍的硬性要求的每个阶段需要通过的测试可以通过测试名得知(别说看不懂测试名)。当测试的目标功能没有完成时会发生段错误，所以测试时把未完成的功能的测试先注释掉再跑测试即可。**TA测试的时候会用这个仓库下的测试代码进行，所以别修改测试代码**。
+单元测试的源文件在test文件夹下，每个测试的名称对应其要测试的目标函数和功能。
 
 ## FPTree
-这是整个键值存储系统的接口类，通过其调用InnerNode进而调用LeafNode进行键值对操作。一个FPTree就是一个键值对数据库，对应一个文件夹。其数据文件与PAllocator的管理文件存在在同一个文件夹下。**请自行注明数据的存储位置(NVM挂载的文件夹)，定义在utility.h中的DATA_DIR变量**
+这是整个键值存储系统的接口类，通过其调用InnerNode进而调用LeafNode进行键值对操作。一个FPTree就是一个键值对数据库，对应一个文件夹。其数据文件与PAllocator的管理文件存在在同一个文件夹下。定义在utility.h中的DATA_DIR变量，我们的fptree使用的pmdk地址为/mnt/mem，
 ### 增删改查
 这些只是操作的接口函数，只需调用节点的函数即可。
 
@@ -153,7 +115,7 @@ node指针个数 : d + 1 <= m < = 2d + 1 </br>
 
 记得保持节点元素有序，这样才可以使用二分查找findIndex。**键值的搜索规则是左闭右开原则**，与书本的一直，即Km <= search <Km+1，Km和Km+1所夹住的索引即为目标节点
 
-### 键值对删除（困难）
+### 键值对删除
 #### 直接对应函数
 bool InnerNode::remove(Key k, int index, InnerNode* parent, bool &ifDelete)
 #### 函数参数说明
@@ -189,7 +151,7 @@ index和parent都是方便节点删除元素后进行重分布或者合并操作
 8. void InnerNode::mergeParentRight()：与父亲节点以及右兄弟合并
 9. int InnerNode::findIndex()：二分查找
 
-### 键值对插入（中等）
+### 键值对插入
 #### 直接对应函数
 KeyNode* InnerNode::insert(Key k, Value v)
 #### 函数参数说明
@@ -208,13 +170,13 @@ KeyNode* InnerNode::insert(Key k, Value v)
 2. int InnerNode::findIndex()：二分查找
 3. void InnerNode::insertNotFull()：节点不满直接插入，保持元素有序
 4. void FPTree::changeRoot(): 当根节点满时分裂，并产生新的根节点
-### 键值对查询（简单）
+### 键值对查询
 #### 直接对应函数
 Value InnerNode::find(Key k)
 #### 函数说明
 这是InnerNode的查询函数，不进行实际的查询。二分查找目标子节点，递归调用其对应子节点的查询函数，直至叶子节点进行实际的查询，返回查询得到的值。查询失败返回MAX_VALUE。
 
-### 键值对修改（简单）
+### 键值对修改
 #### 直接对应函数
 bool InnerNode::update(Key k, Value v)
 
@@ -289,12 +251,3 @@ PAllocator为单例模式，一个PAllocator管理一个FPTree。FPTree初始化
 ```
 ### 所有数据文件均为定长
 本次课程设计有的数据文件有catalog，freelist以及许多LeafGroup。**代码中注释含有的分隔符只是方便说明，并不是说数据文件中以这些分隔符做数据分隔**。因为数据文件中所有的数据均是定长的，没有变长，所以每个数据变量头尾相接存放即可。对于叶子节点，因为每个键值对是8字节键8字节值，通过上面的LEAF_DEGREE确定叶子含有的键值对个数，那么每个叶子的大小也是可以确定了。上面的LEAF_GROUP_AMOUNT决定了每个LeafGroup的叶子数，那么每个LeafGroup的大小也就确定了。
-### 注明
-相关变量和函数的说明在注释中已经给出，不清楚的可以问TA。
-
----
-## 加分项
-本次实验设置了一些加分项，假设都做了并且总体效果很好，那课程设计满分是必须的。需要注意的是加分项必须在完成所有基本实现后才算有效，基本功能没有完成的加分项无效。  
-下面为加分项：
-1. 实现原始FPTree的micro-log机制，在叶子分裂与叶子删除操作中相应实现。为了不影响基础分裂与删除流程，请额外实现另外版本的叶子分裂和叶子删除函数，并自写google test单元测试。(20分)
-2. 实现多线程版本的FPTree。不使用论文中的HTM方法，基于简单的节点加锁机制实现即可，即在对一个节点读写时相应加上共享锁和排它锁。加锁机制没有具体限制，实现的同学请在文档说明实现原理。多线程版本的FPTree不应影响基础单线程版本FPTree的测试，所以请另外用一个项目实现CFPTree。(40分)
