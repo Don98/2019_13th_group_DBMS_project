@@ -20,6 +20,7 @@ InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot) {
     this->childrens = new Node*[2*d + 2];
     this->readerCount = 0;
     this->writerCount = 0;
+    this->parent = NULL;
 }
 
 // delete the InnerNode
@@ -88,6 +89,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v, InnerNode * parent) {
 
         if (this->nChild == 0) {
             LeafNode* leaf_node = new LeafNode(this->tree);
+            leaf_node->parent = this;
             leaf_node->insert(k, v,this);
             this->childrens[nChild++] = leaf_node;
         } else {
@@ -160,6 +162,8 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v, InnerNode * parent) {
         newRoot->keys[newRoot->nKeys++] = newChild->key;
         newRoot->childrens[newRoot->nChild++] = this;
         newRoot->childrens[newRoot->nChild++] = newChild->node;
+        this->parent = newRoot;
+        newChild->parent = newRoot;
         tree->changeRoot(newRoot);
         delete newChild;
         newChild =  NULL;
@@ -178,9 +182,11 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
     if (this->isRoot && this->nKeys == 0) {
         if (this->nChild == 0) {
             this->childrens[nChild++] = leaf.node;
+            leaf.node->parent = this;
         } else {
             this->keys[nKeys++] = leaf.key;
             this->childrens[nChild++] = leaf.node;
+            leaf.node->parent = this;
         }
         return newChild;
     }
@@ -205,6 +211,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
     else {
         this->keys[nKeys++] = leaf.key;
         this->childrens[nChild++] = leaf.node;
+        leaf.node->parent = this;
         if (nKeys > 2 * this->degree) {
             newChild = this->split();
         }
@@ -216,6 +223,8 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
         newRoot->keys[newRoot->nKeys++] = newChild->key;
         newRoot->childrens[newRoot->nChild++] = this;
         newRoot->childrens[newRoot->nChild++] = newChild->node;
+        this->parent = newRoot;
+        newChild->parent = newRoot;
         tree->changeRoot(newRoot);
         delete newChild;
         newChild =  NULL;
@@ -246,6 +255,7 @@ KeyNode* InnerNode::split() {
 
     newChild->key = this->keys[degree];
     newChild->node = (Node*)newNode;
+    newChild->parent = this->parent;
 
     this->nKeys = degree;
     this->nChild = degree + 1;
@@ -373,9 +383,11 @@ void InnerNode::mergeParentLeft(InnerNode* const& parent, InnerNode* const& left
         parent->keys[i + leftBro->nKeys + 1] = this->keys[i];
     }
     for (int i = 0; i < leftBro->nChild; i++) {
+        leftBro->childrens[i]->parent = this->parent;
         parent->childrens[i] = leftBro->childrens[i];
     }
     for (int i = 0; i < this->nChild; i++) {
+        this->childrens[i]->parent = this->parent;
         parent->childrens[i + leftBro->nChild] = this->childrens[i];
     }
     parent->nKeys = leftBro->nKeys + this->nKeys + 1;
@@ -401,9 +413,11 @@ void InnerNode::mergeParentRight(InnerNode* const& parent, InnerNode* const& rig
         parent->keys[i + this->nKeys + 1] = rightBro->keys[i];
     }
     for (int i = 0; i < this->nChild; i++) {
+        this->childrens[i]->parent = this->parent;
         parent->childrens[i] = this->childrens[i];
     }
     for (int i = 0; i < rightBro->nChild; i++) {
+        rightBro->childrens[i]->parent = this->parent;
         parent->childrens[i + this->nChild] = rightBro->childrens[i];
     }
     parent->nKeys = this->nKeys + rightBro->nKeys + 1;
@@ -436,6 +450,7 @@ void InnerNode::redistributeLeft(const int& index, InnerNode* const& leftBro, In
     }
     for (int i = 0; i < moveKeys; i++) {
         this->childrens[moveKeys - i - 1] = leftBro->childrens[leftBro->nChild - 1 - i];
+        leftBro->childrens[leftBro->nChild - 1 - i]->parent = this;
     }
     this->nKeys += moveKeys;
     this->nChild += moveKeys;
@@ -456,6 +471,7 @@ void InnerNode::redistributeRight(const int& index, InnerNode* const& rightBro, 
     }
     for (int i = 0; i < moveKeys; i++) {
         this->childrens[nChild + i] = rightBro->childrens[i];
+        rightBro->childrens[i]->parent = this;
     }
     this->nKeys += moveKeys;
     this->nChild += moveKeys;
@@ -480,6 +496,7 @@ void InnerNode::mergeLeft(InnerNode* const& leftBro, const Key& k) {
     }
     for (int i = 0; i < this->nChild; i++) {
         leftBro->childrens[leftBro->nChild + i] = this->childrens[i];
+        this->childrens[i]->parent = leftBro;
     }
     leftBro->nKeys += (this->nKeys + 1);
     leftBro->nChild += this->nChild;
@@ -498,6 +515,7 @@ void InnerNode::mergeRight(InnerNode* const& rightBro, const Key& k) {
         rightBro->childrens[i + this->nChild] = rightBro->childrens[i];
     }
     for (int i = 0; i < this->nChild; i++) {
+        this->childrens[i]->parent = rightBro;
         rightBro->childrens[i] = this->childrens[i];
     }
     rightBro->nKeys += (this->nKeys + 1);
@@ -581,6 +599,7 @@ LeafNode::LeafNode(FPTree* t) {
     this->degree = LEAF_DEGREE;
     this->isLeaf = true;
 
+    this->parent = NULL;
     // get a leaf from pAllocator
     // if fail to get a leaf, return
     PAllocator* palloc = PAllocator::getAllocator();
@@ -618,6 +637,7 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
     this->degree = LEAF_DEGREE;
     this->isLeaf = true;
 
+    this->parent = NULL;
     PAllocator* palloc = PAllocator::getAllocator();
 
     char* pmem_addr;
@@ -642,7 +662,7 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
     this->next = NULL;
     this->pPointer = p;
     this->filePath = DATA_DIR + to_string(p.fileId);
-    
+
     this->readerCount = 0;
     this->writerCount = 0;
 }
@@ -731,6 +751,8 @@ KeyNode* LeafNode::split() {
     // set the next link
     newNode->next = this->next;
     this->next = newNode;
+
+    newNode->parent = this->parent;
 
     newChild->key = midKey;
     newChild->node = newNode;

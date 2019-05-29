@@ -24,9 +24,9 @@ protected:
     bool    isLeaf;   // judge whether the node is leaf
 
     /*
-    lock : read wrt mutex wrt_mutex  
-           read : readerCount  
-           wrt  : writerCOunt 
+    lock : read wrt mutex wrt_mutex
+           read : readerCount
+           wrt  : writerCOunt
     */
     std::mutex read;//      修改readerCount的锁
     int readerCount;// 记录此结点读者的数量
@@ -87,6 +87,8 @@ private:
     Key*   keys;       // max (2 * d + 1) keys
     Node** childrens;  // max (2 * d + 2) node pointers
 
+    InnerNode* parent;
+
     int findIndex(const Key& k);
 
     void getBrother(const int& index, InnerNode* const& parent, InnerNode* &leftBro, InnerNode* &rightBro);
@@ -131,6 +133,8 @@ class LeafNode : public Node{
 private:
     friend class FPTree;
     friend class InnerNode;
+
+    InnerNode* parent;
 
     // the NVM relative variables
     char*      pmem_addr;      // the pmem address of the leaf node
