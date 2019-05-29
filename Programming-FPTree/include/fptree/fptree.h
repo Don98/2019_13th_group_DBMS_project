@@ -2,7 +2,7 @@
 #include<iostream>
 #include<stdlib.h>
 #include<queue>
-
+#include<mutex>
 #include"utility/p_allocator.h"
 
 // In Mac C++, it is little-endian
@@ -22,13 +22,28 @@ protected:
     FPTree* tree;     // the tree that the node belongs to
     int     degree;   // the degree of the node
     bool    isLeaf;   // judge whether the node is leaf
+
+    /*
+    lock : read wrt mutex wrt_mutex  
+           read : readerCount  
+           wrt  : writerCOunt 
+    */
+    std::mutex read;//      修改readerCount的锁
+    int readerCount;// 记录此结点读者的数量
+    std::mutex wrt;//       修改writerCount的锁
+    int writerCount;// 记录此结点写者的数量
+    std::mutex mut;//       全局锁，抢到这个锁之后直到写者数量为零之后放弃。
+    std::mutex wmut;//写者互斥锁
+
+    Node * parent;
+
 public:
     virtual ~Node() {}
 
     FPTree* getTree() { return tree; }
 
     bool    ifLeaf() { return isLeaf; }
-    virtual KeyNode* insert(const Key& k, const Value& v) = 0;
+    virtual KeyNode* insert(const Key& k, const Value& v, InnerNode * parent) = 0;
     virtual KeyNode* split() = 0;
     virtual bool remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete) = 0;
     virtual bool update(const Key& k, const Value& v) = 0;
@@ -88,7 +103,7 @@ public:
     InnerNode(const int& d, FPTree* const& tree, bool _ifRoot = false);
     ~InnerNode();
 
-    KeyNode* insert(const Key& k, const Value& v);
+    KeyNode* insert(const Key& k, const Value& v, InnerNode * parent);
     void     insertNonFull(const Key& k, Node* const& node);
     KeyNode* insertLeaf(const KeyNode& leaf);
     bool     remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete);
@@ -141,7 +156,7 @@ public:
     LeafNode(PPointer p, FPTree* t);       // read a leaf from NVM/SSD
     ~LeafNode();
 
-    KeyNode*    insert(const Key& k, const Value& v);
+    KeyNode*    insert(const Key& k, const Value& v, InnerNode *parent);
     void        insertNonFull(const Key& k, const Value& v);
     bool        remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete);
     bool        update(const Key& k, const Value& v);
