@@ -18,6 +18,8 @@ InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot) {
     this->nChild = 0;
     this->keys = new Key[2*d + 1];
     this->childrens = new Node*[2*d + 2];
+    this->readerCount = 0;
+    this->writerCount = 0;
 }
 
 // delete the InnerNode
@@ -70,23 +72,30 @@ void InnerNode::insertNonFull(const Key& k, Node* const& node) {
 
 // insert func
 // return value is not NULL if split, returning the new child and a key to insert
-KeyNode* InnerNode::insert(const Key& k, const Value& v) {
+KeyNode* InnerNode::insert(const Key& k, const Value& v, InnerNode * parent) {
     KeyNode* newChild = NULL;
 
     // 1.insertion to the first leaf(only one leaf)
     if (this->isRoot && this->nKeys == 0) {
         // if nChild is 0, there is no leaf node, create one and insert the key
         // value to the leaf node, and set the new leaf node as child
+        parent->mut.unlock();
+        this->wrt.lock();
+        this->writerCount++;
+        if(this->writerCount == 0)
+            this->mut.lock();
+        this->wmut.lock();
+
         if (this->nChild == 0) {
             LeafNode* leaf_node = new LeafNode(this->tree);
-            leaf_node->insert(k, v);
+            leaf_node->insert(k, v,this);
             this->childrens[nChild++] = leaf_node;
         } else {
             // if nChile is not 0, then nChile is 1, the Child must be a leaf,
             // insert the kv to leaf, and check the return value which
             // imdicate whether the leaf split, if split, then add the new leaf
             // to Child array and the new key to key array
-            newChild = this->childrens[0]->insert(k, v);
+            newChild = this->childrens[0]->insert(k, v,this);
             if (newChild != NULL) {
                 this->keys[nKeys++] = newChild->key;
                 this->childrens[nChild++] = newChild->node;
@@ -96,16 +105,38 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
                 newChild = NULL;
             }
         }
+        this->wmut.unlock();
+
+        this->wrt.lock();
+        this->writerCount--;
+        if(this->writerCount == 0)
+            this->mut.unlock();
+
+        this->wrt.unlock();
         return newChild;
     }
 
     // 2.recursive insertion
     // find the position to insert kv, and call the child insert it
     int pos = findIndex(k);
-    newChild = this->childrens[pos]->insert(k, v);
+    if(this->nKeys < 2 * this->degree)
+    {
+        InnerNode * tmp = parent;
+        while(tmp->nKeys == 2 * this->degree){
+            tmp->mut.unlock();
+            tmp = tmp->parent;
+        }
+    }
+
+    newChild = this->childrens[pos]->insert(k, v,this);
     // if the newChild return by child is not NULL, need to insert
     // newChild's key and node to this
     if (newChild != NULL) {
+        this->wrt.lock();
+        this->writerCount++;
+        if(this->writerCount == 0)
+            this->mut.lock();
+        this->wmut.lock();
         this->insertNonFull(newChild->key, newChild->node);
         // after insert the newChild to this, delete the newChild and set
         // the newChild as NULL
@@ -295,7 +326,7 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
         // else need to delete at lease one node
         else {
             ifDelete = true;
-            // is this is root and has only 2 leaf, it means that the key num
+            // is parent is root and has only 2 leaf, it means that the key num
             // of root is one, the key num of its two child is one d - 1 and
             // the other d (or it the two child has already redistribute, won't
             // go into this block), merge the root and its two child
@@ -574,6 +605,10 @@ LeafNode::LeafNode(FPTree* t) {
     this->next = NULL;
     this->pPointer = ppt;
     this->filePath = DATA_DIR + to_string(ppt.fileId);
+
+
+    this->readerCount = 0;
+    this->writerCount = 0;
 }
 
 // reload the leaf with the specific Persistent Pointer
@@ -607,7 +642,9 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
     this->next = NULL;
     this->pPointer = p;
     this->filePath = DATA_DIR + to_string(p.fileId);
-
+    
+    this->readerCount = 0;
+    this->writerCount = 0;
 }
 
 // persist the leaf when destruct
@@ -616,7 +653,7 @@ LeafNode::~LeafNode() {
 }
 
 // insert an entry into the leaf, need to split it if it is full
-KeyNode* LeafNode::insert(const Key& k, const Value& v) {
+KeyNode* LeafNode::insert(const Key& k, const Value& v, InnerNode * parent) {
     KeyNode* newChild = NULL;
     this->insertNonFull(k, v);
     if (this->n >= this->degree * 2) {
@@ -855,7 +892,8 @@ void FPTree::changeRoot(InnerNode* newRoot) {
 
 void FPTree::insert(Key k, Value v) {
     if (root != NULL) {
-        root->insert(k, v);
+        root->mut.lock();
+        root->insert(k, v,root);
     }
 }
 
