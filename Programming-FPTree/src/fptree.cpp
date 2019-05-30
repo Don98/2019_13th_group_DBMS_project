@@ -813,14 +813,49 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
         // outer func to delete this leaf.
         if (this->n == 0) {
             PAllocator* palloc = PAllocator::getAllocator();
+            MicroLog &log = palloc->getRemoveLog();
+            log.logCurPointer(this->pPointer);
+            if (this->prev != NULL) {
+                log.logChangePointer(this->prev->pPointer);
+                *(this->prev->pNext) = *(this->pNext);
+                prev->persist(prev->pNext, sizeof(PPointer));
+            }
             if (!palloc->freeLeaf(this->pPointer)) {
                 printf("error: in LeafNode::remove -> PAllocator::freeLeaf\n");
                 // TODO throw an error
             }
+            log.reset();
+            prev->next = this->next;
             ifDelete = true;
         }
     }
     return ifRemove;
+}
+
+void LeafNode::recoverRemove(MicroLog& log) {
+    PAllocator* palloc = PAllocator::getAllocator();
+    MicroLog& log = palloc->getRemoveLog();
+    PPointer start = palloc->getStartPointer();
+    PPointer cur = log.getCurPointer();
+    PPointer change = log.getChangePointer();
+    PPointer invalid;
+    invalid.fileId = 0;
+    invalid.offset = 0;
+    if (cur == invalid) {
+        log.reset;
+        return;
+    }
+    LeafNode curLeaf = LeafNode(NULL, cur);
+    if (change != invalid) {
+        LeafNode changeLeaf = LeafNode(NULL, change);
+        *(changeLeaf.pNext) = *(curLeaf.pNext);
+        changeLeaf.persist(changeLeaf.pNext, sizeof(PPointer));
+    }
+    if (!palloc->freeLeaf(this->pPointer)) {
+        printf("error: in LeafNode::remove -> PAllocator::freeLeaf\n");
+        // TODO throw an error
+    }
+    log.reset();
 }
 
 // update the target entry
@@ -979,7 +1014,7 @@ bool FPTree::bulkLoading() {
     PAllocator* palloc = PAllocator::getAllocator();
 
     LeafNode::recoverSplit(palloc->getSplitLog());
-    // LeafNode::recoverRemove(palloc->getRemoveLog());
+    LeafNode::recoverRemove(palloc->getRemoveLog());
 
     PPointer ppt = palloc->getStartPointer();
     // if the start point is not used, the tree is empty

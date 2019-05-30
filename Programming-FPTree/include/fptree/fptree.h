@@ -169,7 +169,7 @@ public:
     void        persist(void* addr, int len);
 
     static void recoverSplit(MicroLog &log);
-    // static void recover(MicroLog &log);
+    static void recoverRemove(MicroLog &log);
 
 };
 
