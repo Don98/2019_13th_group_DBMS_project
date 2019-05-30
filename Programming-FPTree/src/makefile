@@ -98,6 +98,8 @@ install:
 	@sudo cp $(LIB)/libfptree.so /usr/lib
 	@rm *.o $(LIB)/libfptree.a $(LIB)/libfptree.so
 	@sudo ldconfig
+	@sudo cp -r ../include/fptree /usr/include
+	@sudo cp -r ../include/utility /usr/include
 
 check:
 	@$(CXX) $(CXXFLAGS) -I$(HEADER_DIR) -o ./tools/check check.cpp -lpmem
