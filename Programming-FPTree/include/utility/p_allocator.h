@@ -1,3 +1,6 @@
+#ifndef P_ALLOCATOR_H
+#define P_ALLOCATOR_H
+
 #include <fstream>
 #include <vector>
 #include <map>
@@ -50,3 +53,5 @@ public:
     uint64_t getMaxFileId() { return this->maxFileId; }
     uint64_t getFreeNum()   { return this->freeNum; }
 };
+
+#endif

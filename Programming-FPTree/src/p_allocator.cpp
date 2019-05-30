@@ -24,7 +24,8 @@ PAllocator* PAllocator::getAllocator() {
    In freeList file:
    | freeList{(fId, offset)1,...(fId, offset)m} |
 */
-PAllocator::PAllocator() {
+PAllocator::PAllocator(): splitLog(MicroLog(SPLIT_LOG_PATH)),
+                          removeLog(MicroLog(REMOVE_LOG_PATH)) {
     string allocatorCatalogPath = DATA_DIR + P_ALLOCATOR_CATALOG_NAME;
     string freeListPath         = DATA_DIR + P_ALLOCATOR_FREE_LIST;
     ifstream allocatorCatalog(allocatorCatalogPath, ios::in|ios::binary);
@@ -60,8 +61,8 @@ PAllocator::PAllocator() {
     }
     this->initFilePmemAddr();
 
-    this->splitLog = MicroLog(SPLIT_LOG_PATH);
-    this->removeLog = MicroLog(REMOVE_LOG_PATH);
+    // this->splitLog = MicroLog(SPLIT_LOG_PATH);
+    // this->removeLog = MicroLog(REMOVE_LOG_PATH);
 }
 
 

@@ -1,3 +1,6 @@
+#ifndef UTILITY_H
+#define UTILITY_H
+
 #include <stdlib.h>
 #include <string>
 
@@ -46,3 +49,5 @@ uint64_t countOneBits(Byte b);
 Byte keyHash(Key k);
 
 PPointer getPNext(PPointer p);
+
+#endif

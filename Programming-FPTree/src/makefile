@@ -23,13 +23,15 @@ UTILITY = utility.o
 
 PALLOCATOR = p_allocator.o
 
+MICROLOG = microlog.o
+
 CLHASH = clhash.o
 
 LEVELDB_HEADER_DIR = ../leveldb/include
 
 LEVELDB_LIB = ../leveldb/build/libleveldb.a
 
-OBJECTS = $(BIN)/$(FPTREE) $(BIN)/$(PALLOCATOR) $(BIN)/$(UTILITY) $(BIN)/$(CLHASH)
+OBJECTS = $(BIN)/$(FPTREE) $(BIN)/$(PALLOCATOR) $(BIN)/$(MICROLOG) $(BIN)/$(UTILITY) $(BIN)/$(CLHASH)
 
 ALL := $(LYCSB) $(YCSB) $(MAIN) $(FPTREE) $(UTILITY) $(PALLOCATOR) $(CLHASH) $(BIN)
 
@@ -47,6 +49,10 @@ $(BIN)/$(FPTREE): fptree.cpp $(FPTREE_HEADER_DIR)/fptree.h
 	$(CXX) $(CXXFLAGS) -c $< -I$(HEADER_DIR) -o $@
 
 $(BIN)/$(PALLOCATOR): p_allocator.cpp $(UTILITY_HEADER_DIR)/p_allocator.h
+	@mkdir -p bin
+	$(CXX) $(CXXFLAGS) -c $< -I$(HEADER_DIR) -o $@
+
+$(BIN)/$(MICROLOG): microlog.cpp $(UTILITY_HEADER_DIR)/microlog.h
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -c $< -I$(HEADER_DIR) -o $@
 

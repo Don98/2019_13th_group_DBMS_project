@@ -1,3 +1,6 @@
+#ifndef FPTREE_H
+#define FPTREE_H
+
 #include<memory.h>
 #include<iostream>
 #include<stdlib.h>
@@ -165,8 +168,8 @@ public:
     void        persist();
     void        persist(void* addr, int len);
 
-    static void recoverSplit(MicroLog &log) {}
-    // static void recover(MicroLog &log) {}
+    static void recoverSplit(MicroLog &log);
+    // static void recover(MicroLog &log);
 
 };
 
@@ -192,3 +195,5 @@ public:
 
     bool       bulkLoading();
 };
+
+#endif

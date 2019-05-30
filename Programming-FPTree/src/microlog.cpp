@@ -1,6 +1,10 @@
 #include "utility/microlog.h"
 #include <fstream>
-
+#include <map>
+#include <libpmem.h>
+using std::ifstream;
+using std::ofstream;
+using std::ios;
 
 MicroLog::MicroLog(const string path) {
     init(path);
@@ -21,7 +25,7 @@ MicroLog::MicroLog(const string path) {
 }
 
 void MicroLog::init(const string path) {
-    ifstream fin(path, ios::in|binary);
+    ifstream fin(path, ios::in|ios::binary);
     if (fin) {
         fin.close();
         return;
@@ -29,7 +33,7 @@ void MicroLog::init(const string path) {
     ofstream fout(path, ios::out|ios::binary);
     PPointer invalidp;
     invalidp.fileId = 0;
-    invalidp.offfset = 0;
+    invalidp.offset = 0;
     fout.write((char*)&invalidp, sizeof(PPointer));
     fout.write((char*)&invalidp, sizeof(PPointer));
     fout.close();
@@ -38,7 +42,7 @@ void MicroLog::init(const string path) {
 bool MicroLog::isUsed() {
     PPointer invalidp;
     invalidp.fileId = 0;
-    invalidp.offfset = 0;
+    invalidp.offset = 0;
     return *first == invalidp;
 }
 
@@ -69,7 +73,7 @@ PPointer MicroLog::getChangePointer() {
 void MicroLog::reset() {
     PPointer invalidp;
     invalidp.fileId = 0;
-    invalidp.offfset = 0;
+    invalidp.offset = 0;
     *first = invalidp;
     *second = invalidp;
     persist((void*)first, sizeof(PPointer) * 2);
