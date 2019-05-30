@@ -834,7 +834,6 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
 
 void LeafNode::recoverRemove(MicroLog& log) {
     PAllocator* palloc = PAllocator::getAllocator();
-    MicroLog& log = palloc->getRemoveLog();
     PPointer start = palloc->getStartPointer();
     PPointer cur = log.getCurPointer();
     PPointer change = log.getChangePointer();
@@ -842,16 +841,16 @@ void LeafNode::recoverRemove(MicroLog& log) {
     invalid.fileId = 0;
     invalid.offset = 0;
     if (cur == invalid) {
-        log.reset;
+        log.reset();
         return;
     }
-    LeafNode curLeaf = LeafNode(NULL, cur);
-    if (change != invalid) {
-        LeafNode changeLeaf = LeafNode(NULL, change);
+    LeafNode curLeaf = LeafNode(cur, NULL);
+    if (!(change == invalid)) {
+        LeafNode changeLeaf = LeafNode(change, NULL);
         *(changeLeaf.pNext) = *(curLeaf.pNext);
         changeLeaf.persist(changeLeaf.pNext, sizeof(PPointer));
     }
-    if (!palloc->freeLeaf(this->pPointer)) {
+    if (!palloc->freeLeaf(cur)) {
         printf("error: in LeafNode::remove -> PAllocator::freeLeaf\n");
         // TODO throw an error
     }
