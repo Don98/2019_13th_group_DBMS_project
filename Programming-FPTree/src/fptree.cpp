@@ -563,10 +563,10 @@ LeafNode::LeafNode(FPTree* t) {
     this->bitmapSize = (LEAF_DEGREE * 2 + 7) / 8;
     // set the pointer pointed to NVM address
     this->pmem_addr = pmem_addr;
-    this->bitmap = (Byte*) pmem_addr;
     this->pNext = (PPointer*)(this->bitmap + bitmapSize);
     this->fingerprints = (Byte*)(this->pNext + 1);
     this->kv = (KeyValue*)(this->fingerprints + LEAF_DEGREE * 2);
+    this->bitmap = (Byte*) pmem_addr;
 
     // the DRAM relative variables
     this->n = 0;
@@ -574,6 +574,8 @@ LeafNode::LeafNode(FPTree* t) {
     this->next = NULL;
     this->pPointer = ppt;
     this->filePath = DATA_DIR + to_string(ppt.fileId);
+    this->is_pmem = palloc->ifPmemAddr(this->pPointer);
+
 }
 
 // reload the leaf with the specific Persistent Pointer
@@ -599,14 +601,15 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
     this->kv = (KeyValue*)(this->fingerprints + LEAF_DEGREE * 2);
 
     this->n = 0;
-    for (uint64_t i = 0; i < bitmapSize; ++ i) {
-        this->n += countOneBits(this->bitmap[i]);
+    for (uint64_t i = 0; i < 2 * this->degree; ++ i) {
+        if (getBit(i)) this->n++;
     }
 
     this->prev = NULL;
     this->next = NULL;
     this->pPointer = p;
     this->filePath = DATA_DIR + to_string(p.fileId);
+    this->is_pmem = palloc->ifPmemAddr(this->pPointer);
 
 }
 
@@ -632,14 +635,16 @@ void LeafNode::insertNonFull(const Key& k, const Value& v) {
         printf("error: LeafNode insertNotFull when it is full.\n");
         return;
     }
-    // bit operation to set the pos bit of bitmap to 1
-    this->bitmap[pos / 8] |= (1 << (7 - pos % 8));
 
     this->fingerprints[pos] = keyHash(k);
     this->kv[pos].k = k;
     this->kv[pos].v = v;
+    persist(&this->fingerprints[pos], sizeof(Byte));
+    persist(&this->kv[pos], sizeof(KeyValue));
+    // bit operation to set the pos bit of bitmap to 1
+    this->bitmap[pos / 8] |= (1 << (7 - pos % 8));
+    persist(&this->bitmap[pos / 8], sizeof(Byte))
     this->n++;
-    persist();
 }
 
 // split the leaf node
@@ -649,8 +654,13 @@ KeyNode* LeafNode::split() {
         return NULL;
     }
 
+    MicroLog& splitLog = PAllocator->getAllocator()->getSplitLog();
+    splitLog.logCurPointer(this->pPointer);
+
     KeyNode* newChild = new KeyNode();
     LeafNode* newNode = new LeafNode(this->tree);
+    splitLog.logChangePointer(newNode->pPointer);
+
     Key midKey = findSplitKey();
 
     Byte newBitmap[(LEAF_DEGREE * 2 + 7) / 8];
@@ -675,11 +685,14 @@ KeyNode* LeafNode::split() {
     *(newNode->pNext) = *(this->pNext);
     newNode->persist();
 
+
+    *(this->pNext) = newNode->pPointer;
     for (int i = 0; i < bitmapSize; ++ i) {
         this->bitmap[i] = ~newBitmap[i];
     }
-    *(this->pNext) = newNode->pPointer;
-    this->persist();
+    this->persist(this->bitmap, this->bitmapSize + sizeof(this->pNext));
+
+    splitLog.reset();
 
     // after split,
     newNode->n = this->degree;
@@ -701,6 +714,44 @@ KeyNode* LeafNode::split() {
     return newChild;
 }
 
+static void LeafNode::recoverSplit(MicroLog &log) {
+    PPointer cur = log.getCurPointer();
+    PPointer change = log.getChangePointer();
+    PPointer p;
+    p.fileId = 0;
+    p.offset = 0;
+    if (cur == p) return;
+    if (change == p) {
+        log.reset();
+        return;
+    }
+    LeafNode curLeaf = LeafNode(cur, NULL);
+    LeafNode changeLeaf = LeafNode(change, NULL);
+    if (curLeaf.n >= 2 * curLeaf.degree) {
+        Key midKey = curLeaf.findSplitKey();
+        Byte newBitmap[(LEAF_DEGREE * 2 + 7) / 8];
+        memset(newBitmap, 0, bitmapSize);
+        for (int i = 0; i < curLeaf.degree * 2; i++) {
+            if (curLeaf.kv[i].k >= midKey) {
+                newBitmap[i / 8] |= (1 << (7 - (i % 8)));
+                changeLeaf.fingerprints[i] = curLeaf.fingerprints[i];
+                changeLeaf.kv[i] = curLeaf.kv[i];
+            }
+        }
+        for (int i = 0; i < bitmapSize; ++ i) {
+            changeLeaf.bitmap[i] = newBitmap[i];
+        }
+        *(changeLeaf.pNext) = *(curLeaf.pNext);
+        changeLeaf.persist();
+    }
+    *(curLeaf.pNext) = changeLeaf.pPointer;
+    for (int i = 0; i < bitmapSize; ++ i) {
+        curLeaf.bitmap[i] = ~newBitmap[i];
+    }
+    this->persist(this->bitmap, this->bitmapSize + sizeof(this->pNext));
+
+    splitLog.reset();
+}
 
 // use to find a mediant key and delete entries less then middle
 // called by the split func to generate new leaf-node
@@ -813,10 +864,18 @@ int LeafNode::findFirstZero() {
 // persist the entire leaf
 // use PMDK
 void LeafNode::persist() {
-    if (PAllocator::getAllocator()->ifPmemAddr(this->pPointer)) {
+    if (this->is_pmem) {
         pmem_persist(this->pmem_addr, calLeafSize());
     } else {
         pmem_msync(this->pmem_addr, calLeafSize());
+    }
+}
+
+void LeafNode::persist(void* addr, int len) {
+    if (this->is_pmem) {
+        pmem_persist(addr, len);
+    } else {
+        pmem_msync(addr, len);
     }
 }
 
@@ -917,6 +976,10 @@ void FPTree::printTree() {
 // need to call the PALlocator
 bool FPTree::bulkLoading() {
     PAllocator* palloc = PAllocator::getAllocator();
+
+    LeafNode::recoverSplit(palloc->getSplitLog());
+    // LeafNode::recoverRemove(palloc->getRemoveLog());
+
     PPointer ppt = palloc->getStartPointer();
     // if the start point is not used, the tree is empty
     // return false

@@ -117,6 +117,7 @@ private:
     friend class FPTree;
     friend class InnerNode;
 
+
     // the NVM relative variables
     char*      pmem_addr;      // the pmem address of the leaf node
 
@@ -133,6 +134,7 @@ private:
     LeafNode*  next;           // the address of next leafnode
     PPointer   pPointer;        // the persistent pointer pointed to the leaf in NVM
     string     filePath;        // the file path of the leaf
+    int is_pmem;
 
     uint64_t   bitmapSize;      // the bitmap size of the leaf(bytes)
 
@@ -161,6 +163,11 @@ public:
 
     // interface with NVM
     void        persist();
+    void        persist(void* addr, int len);
+
+    static void recoverSplit(MicroLog &log) {}
+    // static void recover(MicroLog &log) {}
+
 };
 
 class FPTree {

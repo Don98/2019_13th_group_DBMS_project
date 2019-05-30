@@ -59,7 +59,11 @@ PAllocator::PAllocator() {
         persistCatalog();
     }
     this->initFilePmemAddr();
+
+    this->splitLog = MicroLog(SPLIT_LOG_PATH);
+    this->removeLog = MicroLog(REMOVE_LOG_PATH);
 }
+
 
 /******************************************************************************
 when destruct, store the data, and then unmap the pmem address, at last set
