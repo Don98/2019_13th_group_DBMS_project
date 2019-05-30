@@ -31,12 +31,28 @@ InnerNode::~InnerNode() {
 
 // binary search the first key in the innernode larger than input key
 int InnerNode::findIndex(const Key& k) {
+    this->read.lock();
+    cout << k << endl;
+    this->readerCount++;
+    cout << this->readerCount << endl;
+    cout << this->writerCount << endl;
+    if(this->readerCount == 1)
+        this->mut.lock();
+    cout << k << endl;
+    this->read.unlock();
+
     int left = 0, right = this->nKeys - 1, mid;
     while (left <= right) {
         mid = (left + right) / 2;
         if (this->keys[mid] > k) right = mid - 1;
         else left = mid + 1;
     }
+    this->read.lock();
+    this->readerCount--;
+    if(readerCount == 0)
+        this->mut.unlock();
+    this->read.unlock();
+
     return left;
 }
 
@@ -73,31 +89,32 @@ void InnerNode::insertNonFull(const Key& k, Node* const& node) {
 
 // insert func
 // return value is not NULL if split, returning the new child and a key to insert
-KeyNode* InnerNode::insert(const Key& k, const Value& v, InnerNode * parent) {
+KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     KeyNode* newChild = NULL;
 
     // 1.insertion to the first leaf(only one leaf)
     if (this->isRoot && this->nKeys == 0) {
         // if nChild is 0, there is no leaf node, create one and insert the key
         // value to the leaf node, and set the new leaf node as child
-        parent->mut.unlock();
         this->wrt.lock();
         this->writerCount++;
         if(this->writerCount == 0)
             this->mut.lock();
+        this->wrt.unlock();
         this->wmut.lock();
+
 
         if (this->nChild == 0) {
             LeafNode* leaf_node = new LeafNode(this->tree);
             leaf_node->parent = this;
-            leaf_node->insert(k, v,this);
+            leaf_node->insert(k, v);
             this->childrens[nChild++] = leaf_node;
         } else {
             // if nChile is not 0, then nChile is 1, the Child must be a leaf,
             // insert the kv to leaf, and check the return value which
             // imdicate whether the leaf split, if split, then add the new leaf
             // to Child array and the new key to key array
-            newChild = this->childrens[0]->insert(k, v,this);
+            newChild = this->childrens[0]->insert(k, v);
             if (newChild != NULL) {
                 this->keys[nKeys++] = newChild->key;
                 this->childrens[nChild++] = newChild->node;
@@ -120,34 +137,63 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v, InnerNode * parent) {
 
     // 2.recursive insertion
     // find the position to insert kv, and call the child insert it
+
+
+    cout << v << " isRoot : " << this->parent->isRoot << endl;
     int pos = findIndex(k);
+    
     if(this->nKeys < 2 * this->degree)
     {
         InnerNode * tmp = parent;
-        while(tmp->nKeys == 2 * this->degree){
-            tmp->mut.unlock();
+        while(tmp != NULL && tmp->nKeys == 2 * this->degree){
+            tmp->wmut.unlock();
+            tmp->wrt.lock();
+            tmp->writerCount--;
+            if(tmp->writerCount == 0)
+                tmp->mut.unlock();
+            tmp->wrt.unlock();
+
             tmp = tmp->parent;
         }
     }
+    this->wrt.lock();
+    this->writerCount++;
+    if(this->writerCount == 1)
+        this->mut.lock();
+    this->wrt.unlock();
+    this->wmut.lock();
 
-    newChild = this->childrens[pos]->insert(k, v,this);
+
+    newChild = this->childrens[pos]->insert(k, v);
+
+    cout << v << endl;
+
     // if the newChild return by child is not NULL, need to insert
     // newChild's key and node to this
     if (newChild != NULL) {
-        this->wrt.lock();
-        this->writerCount++;
-        if(this->writerCount == 0)
-            this->mut.lock();
-        this->wmut.lock();
+
         this->insertNonFull(newChild->key, newChild->node);
         // after insert the newChild to this, delete the newChild and set
         // the newChild as NULL
+
+
         delete newChild;
         newChild = NULL;
         // if this's key num if greater than 2d, need to split, and return
         // the newChild to this's parent
+        
+
         if (this->nKeys > 2 * this->degree) {
             newChild = this->split();
+        }
+
+        if(!(this->isRoot && newChild != NULL)){
+            this->wmut.unlock();
+            this->wrt.lock();
+            this->writerCount--;
+            if(this->writerCount == 0)
+                this->mut.unlock();
+            this->wrt.unlock();
         }
     }
 
@@ -157,16 +203,25 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v, InnerNode * parent) {
     // newChild's key, the first child is this, the second child is newChild's
     // node
     if (this->isRoot && newChild != NULL) {
+
         InnerNode* newRoot = new InnerNode(this->degree, this->tree, true);
         this->isRoot = false;
         newRoot->keys[newRoot->nKeys++] = newChild->key;
         newRoot->childrens[newRoot->nChild++] = this;
         newRoot->childrens[newRoot->nChild++] = newChild->node;
         this->parent = newRoot;
-        newChild->parent = newRoot;
+        newChild->node->parent = newRoot;
         tree->changeRoot(newRoot);
         delete newChild;
         newChild =  NULL;
+        
+        this->wmut.unlock();
+        this->wrt.lock();
+        this->writerCount--;
+        if(this->writerCount == 0)
+            this->mut.unlock();
+        this->wrt.unlock();
+
     }
 
     return newChild;
@@ -224,7 +279,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
         newRoot->childrens[newRoot->nChild++] = this;
         newRoot->childrens[newRoot->nChild++] = newChild->node;
         this->parent = newRoot;
-        newChild->parent = newRoot;
+        newChild->node->parent = newRoot;
         tree->changeRoot(newRoot);
         delete newChild;
         newChild =  NULL;
@@ -235,6 +290,7 @@ KeyNode* InnerNode::insertLeaf(const KeyNode& leaf) {
 
 KeyNode* InnerNode::split() {
     // if needn't to split, return NULL
+
     if(this->nKeys <= 2*this->degree ){
         printf("error: InnerNode split innernode when not full\n");
         return NULL;
@@ -255,7 +311,7 @@ KeyNode* InnerNode::split() {
 
     newChild->key = this->keys[degree];
     newChild->node = (Node*)newNode;
-    newChild->parent = this->parent;
+    newChild->node->parent = this->parent;
 
     this->nKeys = degree;
     this->nChild = degree + 1;
@@ -673,12 +729,43 @@ LeafNode::~LeafNode() {
 }
 
 // insert an entry into the leaf, need to split it if it is full
-KeyNode* LeafNode::insert(const Key& k, const Value& v, InnerNode * parent) {
+KeyNode* LeafNode::insert(const Key& k, const Value& v) {        
+    if(this->n < this->degree * 2){
+        InnerNode * tmp = this->parent;
+        while(tmp != NULL && tmp->getKeyNum() == this->degree * 2 - 1){
+            tmp->wmut.unlock();
+            tmp->wrt.lock();
+            tmp->writerCount--;
+            if(tmp->writerCount == 0)
+                tmp->mut.unlock();
+            tmp->wrt.unlock();
+
+            tmp = tmp->parent;
+        }
+    }
+
+    this->wrt.lock();
+    this->writerCount++;
+    if(this->writerCount == 1)
+        this->mut.lock();
+    this->wrt.unlock();
+
+    this->wmut.lock();
+
     KeyNode* newChild = NULL;
     this->insertNonFull(k, v);
     if (this->n >= this->degree * 2) {
         newChild = this->split();
     }
+
+    this->wmut.unlock();
+
+    this->wrt.lock();
+    this->writerCount--;
+    if(this->writerCount == 0)
+        this->mut.unlock();
+    this->wrt.unlock();
+
     return newChild;
 }
 
@@ -914,8 +1001,8 @@ void FPTree::changeRoot(InnerNode* newRoot) {
 
 void FPTree::insert(Key k, Value v) {
     if (root != NULL) {
-        root->mut.lock();
-        root->insert(k, v,root);
+        cout << k << " " << v << endl;
+        root->insert(k, v);
     }
 }
 
