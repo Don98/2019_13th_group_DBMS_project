@@ -172,7 +172,7 @@ public:
     Value       getValue(const int& idx);
     PPointer    getPPointer();
     int         getDegree(){return this->degree;};
-    bool        isSafe(){return this->n < this->degree * 2;};
+    bool        isSafe(){return this->n < this->degree * 2 - 1;};
 
     RSLock*      getRSLock(){return this->TLock;};
     // interface with NVM

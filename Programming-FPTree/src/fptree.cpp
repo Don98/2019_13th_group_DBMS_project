@@ -30,7 +30,9 @@ InnerNode::~InnerNode() {
 
 // binary search the first key in the innernode larger than input key
 int InnerNode::findIndex(const Key& k) {
-    this->TLock->read_lock();
+    bool flag = this->TLock->ifWLock() | this->TLock->ifRLock();
+    if(!flag)
+        this->TLock->read_lock();
 
     int left = 0, right = this->nKeys - 1, mid;
     while (left <= right) {
@@ -38,8 +40,8 @@ int InnerNode::findIndex(const Key& k) {
         if (this->keys[mid] > k) right = mid - 1;
         else left = mid + 1;
     }
-    this->TLock->read_rele();
-
+    if(!flag)
+        this->TLock->read_rele();
     return left;
 }
 
@@ -79,13 +81,13 @@ void InnerNode::insertNonFull(const Key& k, Node* const& node) {
 KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     KeyNode* newChild = NULL;
 
+    cout << v << " 0 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
     // 1.insertion to the first leaf(only one leaf)
     if (this->isRoot && this->nKeys == 0) {
         // if nChild is 0, there is no leaf node, create one and insert the key
         // value to the leaf node, and set the new leaf node as child
         this->TLock->write_lock();
-
-
+        this->TLock->setGiveUp(false);
         if (this->nChild == 0) {
             LeafNode* leaf_node = new LeafNode(this->tree);
             leaf_node->parent = this;
@@ -106,6 +108,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
                 newChild = NULL;
             }
         }
+        this->TLock->setGiveUp(true);
         this->TLock->write_rele();
         return newChild;
     }
@@ -114,24 +117,27 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     // find the position to insert kv, and call the child insert it
 
 
-    // cout << v << " isRoot : " << this->isRoot << " writerCount : " << this->writerCount << endl;
+    cout << v << " 1 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
     int pos = findIndex(k);
     
     if(this->isSafe())
     {
         InnerNode * tmp = parent;
-        while(tmp != NULL && tmp->nKeys == 2 * this->degree){
+        while(tmp != NULL && tmp->TLock->ifWLock()){
             tmp->TLock->write_rele();
             tmp = tmp->parent;
         }
     }
     this->TLock->write_lock();
-    
+    cout << v << " 2 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
+    cout << "parent : " <<  this->getRSLock()->ifWLock() << " " << this->getRSLock()->getGiveUp() << endl;
+    cout << "num : " << this->find(123) << endl;
     newChild = this->childrens[pos]->insert(k, v);
 
+    cout << v << " 3 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
     // cout << v << endl;
     // if(newChild != NULL)
-    //     cout << 123 << endl;
+    //     cout << 456 << endl;
     // if the newChild return by child is not NULL, need to insert
     // newChild's key and node to this
     if (newChild != NULL) {
@@ -175,7 +181,9 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         this->TLock->write_rele();
     }
 
-    // cout << v << " isRoot : " << this->isRoot << " writerCount : " << this->writerCount << endl;
+    cout << v << " 4 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
+    if(this->TLock->get_write() != 0)
+        cout << "-----------------------------------------" << this->TLock->get_write() << " " << k << " " << v << "-----------------------------------------" << endl;
     return newChild;
 }
 
@@ -678,10 +686,17 @@ LeafNode::~LeafNode() {
 }
 
 // insert an entry into the leaf, need to split it if it is full
-KeyNode* LeafNode::insert(const Key& k, const Value& v) {        
+KeyNode* LeafNode::insert(const Key& k, const Value& v) {      
+    cout << v << " writerCount : " << this->TLock->get_write() << " isLock : " << this->getRSLock()->ifWLock() << " parent:isSafe : " << this->isSafe() << endl;  
+    cout << "LeafNode isSafe : " << this->isSafe() << " this->n : " << this->n  << " degree * 2 " << this->degree * 2<< endl;
+    if(v == 3370){
+        cout << "true or not : " << (this->parent != NULL) << " " <<  this->parent->getRSLock()->ifWLock() << " " << this->parent->getRSLock()->getGiveUp() << endl;
+        cout << this->parent->find(123) << endl;
+    }
     if(this->isSafe()){
         InnerNode * tmp = this->parent;
-        while(tmp != NULL && !(tmp->isSafe())){
+        while(tmp != NULL && tmp->getRSLock()->ifWLock() && tmp->getRSLock()->getGiveUp()){
+            // cout << "123" << endl;
             tmp->getRSLock()->write_rele();
             tmp = tmp->parent;
         }
@@ -932,7 +947,7 @@ void FPTree::changeRoot(InnerNode* newRoot) {
 
 void FPTree::insert(Key k, Value v) {
     if (root != NULL) {
-        // cout << k << " " << v << endl;
+        cout << k << " " << v << endl;
         root->insert(k, v);
     }
 }
