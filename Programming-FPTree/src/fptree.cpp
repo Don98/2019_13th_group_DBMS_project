@@ -18,9 +18,8 @@ InnerNode::InnerNode(const int& d, FPTree* const& t, bool _isRoot) {
     this->nChild = 0;
     this->keys = new Key[2*d + 1];
     this->childrens = new Node*[2*d + 2];
-    this->readerCount = 0;
-    this->writerCount = 0;
     this->parent = NULL;
+    this->TLock = new RSLock();
 }
 
 // delete the InnerNode
@@ -31,15 +30,7 @@ InnerNode::~InnerNode() {
 
 // binary search the first key in the innernode larger than input key
 int InnerNode::findIndex(const Key& k) {
-    this->read.lock();
-    cout << k << endl;
-    this->readerCount++;
-    cout << this->readerCount << endl;
-    cout << this->writerCount << endl;
-    if(this->readerCount == 1)
-        this->mut.lock();
-    cout << k << endl;
-    this->read.unlock();
+    this->TLock->read_lock();
 
     int left = 0, right = this->nKeys - 1, mid;
     while (left <= right) {
@@ -47,11 +38,7 @@ int InnerNode::findIndex(const Key& k) {
         if (this->keys[mid] > k) right = mid - 1;
         else left = mid + 1;
     }
-    this->read.lock();
-    this->readerCount--;
-    if(readerCount == 0)
-        this->mut.unlock();
-    this->read.unlock();
+    this->TLock->read_rele();
 
     return left;
 }
@@ -96,12 +83,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     if (this->isRoot && this->nKeys == 0) {
         // if nChild is 0, there is no leaf node, create one and insert the key
         // value to the leaf node, and set the new leaf node as child
-        this->wrt.lock();
-        this->writerCount++;
-        if(this->writerCount == 0)
-            this->mut.lock();
-        this->wrt.unlock();
-        this->wmut.lock();
+        this->TLock->write_lock();
 
 
         if (this->nChild == 0) {
@@ -124,14 +106,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
                 newChild = NULL;
             }
         }
-        this->wmut.unlock();
-
-        this->wrt.lock();
-        this->writerCount--;
-        if(this->writerCount == 0)
-            this->mut.unlock();
-
-        this->wrt.unlock();
+        this->TLock->write_rele();
         return newChild;
     }
 
@@ -139,39 +114,27 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     // find the position to insert kv, and call the child insert it
 
 
-    cout << v << " isRoot : " << this->parent->isRoot << endl;
+    // cout << v << " isRoot : " << this->isRoot << " writerCount : " << this->writerCount << endl;
     int pos = findIndex(k);
     
-    if(this->nKeys < 2 * this->degree)
+    if(this->isSafe())
     {
         InnerNode * tmp = parent;
         while(tmp != NULL && tmp->nKeys == 2 * this->degree){
-            tmp->wmut.unlock();
-            tmp->wrt.lock();
-            tmp->writerCount--;
-            if(tmp->writerCount == 0)
-                tmp->mut.unlock();
-            tmp->wrt.unlock();
-
+            tmp->TLock->write_rele();
             tmp = tmp->parent;
         }
     }
-    this->wrt.lock();
-    this->writerCount++;
-    if(this->writerCount == 1)
-        this->mut.lock();
-    this->wrt.unlock();
-    this->wmut.lock();
-
-
+    this->TLock->write_lock();
+    
     newChild = this->childrens[pos]->insert(k, v);
 
-    cout << v << endl;
-
+    // cout << v << endl;
+    // if(newChild != NULL)
+    //     cout << 123 << endl;
     // if the newChild return by child is not NULL, need to insert
     // newChild's key and node to this
     if (newChild != NULL) {
-
         this->insertNonFull(newChild->key, newChild->node);
         // after insert the newChild to this, delete the newChild and set
         // the newChild as NULL
@@ -188,12 +151,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         }
 
         if(!(this->isRoot && newChild != NULL)){
-            this->wmut.unlock();
-            this->wrt.lock();
-            this->writerCount--;
-            if(this->writerCount == 0)
-                this->mut.unlock();
-            this->wrt.unlock();
+            this->TLock->write_rele();
         }
     }
 
@@ -214,16 +172,10 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         tree->changeRoot(newRoot);
         delete newChild;
         newChild =  NULL;
-        
-        this->wmut.unlock();
-        this->wrt.lock();
-        this->writerCount--;
-        if(this->writerCount == 0)
-            this->mut.unlock();
-        this->wrt.unlock();
-
+        this->TLock->write_rele();
     }
 
+    // cout << v << " isRoot : " << this->isRoot << " writerCount : " << this->writerCount << endl;
     return newChild;
 }
 
@@ -681,9 +633,7 @@ LeafNode::LeafNode(FPTree* t) {
     this->pPointer = ppt;
     this->filePath = DATA_DIR + to_string(ppt.fileId);
 
-
-    this->readerCount = 0;
-    this->writerCount = 0;
+    this->TLock = new RSLock();
 }
 
 // reload the leaf with the specific Persistent Pointer
@@ -719,8 +669,7 @@ LeafNode::LeafNode(PPointer p, FPTree* t) {
     this->pPointer = p;
     this->filePath = DATA_DIR + to_string(p.fileId);
 
-    this->readerCount = 0;
-    this->writerCount = 0;
+    this->TLock = new RSLock();
 }
 
 // persist the leaf when destruct
@@ -730,27 +679,15 @@ LeafNode::~LeafNode() {
 
 // insert an entry into the leaf, need to split it if it is full
 KeyNode* LeafNode::insert(const Key& k, const Value& v) {        
-    if(this->n < this->degree * 2){
+    if(this->isSafe()){
         InnerNode * tmp = this->parent;
-        while(tmp != NULL && tmp->getKeyNum() == this->degree * 2 - 1){
-            tmp->wmut.unlock();
-            tmp->wrt.lock();
-            tmp->writerCount--;
-            if(tmp->writerCount == 0)
-                tmp->mut.unlock();
-            tmp->wrt.unlock();
-
+        while(tmp != NULL && !(tmp->isSafe())){
+            tmp->getRSLock()->write_rele();
             tmp = tmp->parent;
         }
     }
 
-    this->wrt.lock();
-    this->writerCount++;
-    if(this->writerCount == 1)
-        this->mut.lock();
-    this->wrt.unlock();
-
-    this->wmut.lock();
+    this->TLock->write_lock();
 
     KeyNode* newChild = NULL;
     this->insertNonFull(k, v);
@@ -758,13 +695,7 @@ KeyNode* LeafNode::insert(const Key& k, const Value& v) {
         newChild = this->split();
     }
 
-    this->wmut.unlock();
-
-    this->wrt.lock();
-    this->writerCount--;
-    if(this->writerCount == 0)
-        this->mut.unlock();
-    this->wrt.unlock();
+    this->TLock->write_rele();
 
     return newChild;
 }
@@ -1001,7 +932,7 @@ void FPTree::changeRoot(InnerNode* newRoot) {
 
 void FPTree::insert(Key k, Value v) {
     if (root != NULL) {
-        cout << k << " " << v << endl;
+        // cout << k << " " << v << endl;
         root->insert(k, v);
     }
 }

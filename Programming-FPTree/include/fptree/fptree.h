@@ -4,7 +4,7 @@
 #include<queue>
 #include<mutex>
 #include"utility/p_allocator.h"
-
+#include"rsLock.h"
 // In Mac C++, it is little-endian
 // 0x12345677 --> 78 56 34 12
 
@@ -22,34 +22,29 @@ protected:
     FPTree* tree;     // the tree that the node belongs to
     int     degree;   // the degree of the node
     bool    isLeaf;   // judge whether the node is leaf
-
-    /*
-    lock : read wrt mutex wrt_mutex
-           read : readerCount
-           wrt  : writerCOunt
-    */
-    std::mutex read;//      修改readerCount的锁
-    int readerCount;// 记录此结点读者的数量
-    std::mutex wrt;//       修改writerCount的锁
-    int writerCount;// 记录此结点写者的数量
-    std::mutex mut;//       全局锁，抢到这个锁之后直到写者数量为零之后放弃。
-    std::mutex wmut;//写者互斥锁
-
-    Node * parent;
-
 public:
     virtual ~Node() {}
 
     FPTree* getTree() { return tree; }
 
     bool    ifLeaf() { return isLeaf; }
-    virtual KeyNode* insert(const Key& k, const Value& v, InnerNode * parent) = 0;
+    virtual KeyNode* insert(const Key& k, const Value& v) = 0;
     virtual KeyNode* split() = 0;
     virtual bool remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete) = 0;
     virtual bool update(const Key& k, const Value& v) = 0;
     virtual Value find(const Key& k) = 0;
 
     virtual void printNode() = 0;
+    virtual int getDegree() = 0;
+    virtual bool isSafe() = 0;
+    virtual RSLock* getRSLock() = 0;
+        /*
+    lock : read wrt mutex wrt_mutex
+           read : readerCount
+           wrt  : writerCOunt
+    */
+    InnerNode * parent;
+    RSLock *TLock;
 };
 
 // used for node's recursive insertion and split
@@ -87,8 +82,6 @@ private:
     Key*   keys;       // max (2 * d + 1) keys
     Node** childrens;  // max (2 * d + 2) node pointers
 
-    InnerNode* parent;
-
     int findIndex(const Key& k);
 
     void getBrother(const int& index, InnerNode* const& parent, InnerNode* &leftBro, InnerNode* &rightBro);
@@ -105,7 +98,7 @@ public:
     InnerNode(const int& d, FPTree* const& tree, bool _ifRoot = false);
     ~InnerNode();
 
-    KeyNode* insert(const Key& k, const Value& v, InnerNode * parent);
+    KeyNode* insert(const Key& k, const Value& v);
     void     insertNonFull(const Key& k, Node* const& node);
     KeyNode* insertLeaf(const KeyNode& leaf);
     bool     remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete);
@@ -121,6 +114,9 @@ public:
     int      getChildNum() { return this->nChild; }
     bool     getIsRoot() { return this->isRoot; }
     void     printNode();
+    int      getDegree(){return this->degree;};
+    bool     isSafe(){return this->nKeys < this->degree * 2;};
+    RSLock*   getRSLock(){return this->TLock;};
 };
 
 /*
@@ -133,8 +129,6 @@ class LeafNode : public Node{
 private:
     friend class FPTree;
     friend class InnerNode;
-
-    InnerNode* parent;
 
     // the NVM relative variables
     char*      pmem_addr;      // the pmem address of the leaf node
@@ -160,7 +154,7 @@ public:
     LeafNode(PPointer p, FPTree* t);       // read a leaf from NVM/SSD
     ~LeafNode();
 
-    KeyNode*    insert(const Key& k, const Value& v, InnerNode *parent);
+    KeyNode*    insert(const Key& k, const Value& v);
     void        insertNonFull(const Key& k, const Value& v);
     bool        remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete);
     bool        update(const Key& k, const Value& v);
@@ -177,7 +171,10 @@ public:
     Key         getKey(const int& idx);
     Value       getValue(const int& idx);
     PPointer    getPPointer();
+    int         getDegree(){return this->degree;};
+    bool        isSafe(){return this->n < this->degree * 2;};
 
+    RSLock*      getRSLock(){return this->TLock;};
     // interface with NVM
     void        persist();
 };
