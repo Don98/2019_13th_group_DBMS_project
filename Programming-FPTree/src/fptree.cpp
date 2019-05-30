@@ -102,7 +102,6 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
             if (newChild != NULL) {
                 this->keys[nKeys++] = newChild->key;
                 this->childrens[nChild++] = newChild->node;
-                newChild->node->parent = newRoot;
                 // note that the newChild is a keynode and be new by child, it
                 // MUST DELETE, or it will lead to MEMORY LEAK
                 delete newChild;
