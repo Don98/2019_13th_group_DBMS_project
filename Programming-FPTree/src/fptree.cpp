@@ -102,6 +102,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
             if (newChild != NULL) {
                 this->keys[nKeys++] = newChild->key;
                 this->childrens[nChild++] = newChild->node;
+                newChild->node->parent = newRoot;
                 // note that the newChild is a keynode and be new by child, it
                 // MUST DELETE, or it will lead to MEMORY LEAK
                 delete newChild;
@@ -119,7 +120,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
 
     cout << v << " 1 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
     int pos = findIndex(k);
-    
+
     if(this->isSafe())
     {
         InnerNode * tmp = parent;
@@ -150,7 +151,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         newChild = NULL;
         // if this's key num if greater than 2d, need to split, and return
         // the newChild to this's parent
-        
+
 
         if (this->nKeys > 2 * this->degree) {
             newChild = this->split();
@@ -686,8 +687,8 @@ LeafNode::~LeafNode() {
 }
 
 // insert an entry into the leaf, need to split it if it is full
-KeyNode* LeafNode::insert(const Key& k, const Value& v) {      
-    cout << v << " writerCount : " << this->TLock->get_write() << " isLock : " << this->getRSLock()->ifWLock() << " parent:isSafe : " << this->isSafe() << endl;  
+KeyNode* LeafNode::insert(const Key& k, const Value& v) {
+    cout << v << " writerCount : " << this->TLock->get_write() << " isLock : " << this->getRSLock()->ifWLock() << " parent:isSafe : " << this->isSafe() << endl;
     cout << "LeafNode isSafe : " << this->isSafe() << " this->n : " << this->n  << " degree * 2 " << this->degree * 2<< endl;
     if(v == 3370){
         cout << "true or not : " << (this->parent != NULL) << " " <<  this->parent->getRSLock()->ifWLock() << " " << this->parent->getRSLock()->getGiveUp() << endl;
@@ -856,6 +857,14 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
             if (!palloc->freeLeaf(this->pPointer)) {
                 printf("error: in LeafNode::remove -> PAllocator::freeLeaf\n");
                 // TODO throw an error
+            }
+            if (this->prev != NULL) {
+                prev->next = this->next;
+                *(prev->pNext) = *(this->pNext);
+                prev->persist();
+            }
+            if (this->next != NULL) {
+                next->prev = prev;
             }
             ifDelete = true;
         }
