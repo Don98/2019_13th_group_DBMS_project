@@ -866,6 +866,7 @@ bool LeafNode::update(const Key& k, const Value& v) {
         if (getBit(i) && hash == this->fingerprints[i]) {
             if (k == this->kv[i].k) {
                 this->kv[i].v = v;
+                this->persist(&this->kv[i], sizeof(KeyValue));
                 ifUpdate = true;
                 break;
             }
