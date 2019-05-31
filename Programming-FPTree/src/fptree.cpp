@@ -825,7 +825,8 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
                 // TODO throw an error
             }
             log.reset();
-            prev->next = this->next;
+            if (prev != NULL) prev->next = this->next;
+            if (next != NULL) next->prev = prev;
             ifDelete = true;
         }
     }
