@@ -89,6 +89,7 @@ sudo make testfptree
 make
 sudo ./bin/utility_test
 sudo ./bin/fptree_test
+sudo ./bin/CFPTree_test
 ```
 
 ## FPTree使用
