@@ -765,6 +765,14 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
                 printf("error: in LeafNode::remove -> PAllocator::freeLeaf\n");
                 // TODO throw an error
             }
+            if (this->prev != NULL) {
+                prev->next = this->next;
+                *(prev->pNext) = *(this->pNext);
+                prev->persist();
+            }
+            if (this->next != NULL) {
+                next->prev = prev;
+            }
             ifDelete = true;
         }
     }
