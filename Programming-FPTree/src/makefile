@@ -101,6 +101,9 @@ install:
 	@sudo cp -r ../include/fptree /usr/include
 	@sudo cp -r ../include/utility /usr/include
 
+uninstall:
+	@sudo rm -r /usr/include/fptree /usr/include/utility
+
 check:
 	@$(CXX) $(CXXFLAGS) -I$(HEADER_DIR) -o ../tools/check check.cpp -lpmem
 	@sudo chmod +x ../tools/check.sh
