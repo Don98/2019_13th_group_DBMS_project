@@ -37,6 +37,7 @@ sudo make testfptree
 make
 sudo ./bin/utility_test
 sudo ./bin/fptree_test
+sudo ./bin/CFPTree_test
 ```
 
 ## 完成进度
@@ -45,5 +46,6 @@ sudo ./bin/fptree_test
 - [x] FPTreeDB插入和重载操作并通过相关测试(发布v2版本branch)
 - [x] FPTreeDB查询和更新操作并通过相关测试(发布v3版本branch)
 - [x] FPTreeDB删除操作和所有剩下实现以及测试(发布final版本branch)
-- [ ] 实现原始FPTree的micro-log机制(发布版本micro-log)
-- [ ] 实现多线程版本的FPTree(发布版本CFPTree)
+- [x] 实现单线程原始FPTree的micro-log机制(发布版本micro-log)
+- [x] 实现多线程版本的FPTree(发布版本CFPTree)
+- [ ] 实现多线程版本带micro-log的FPTree
