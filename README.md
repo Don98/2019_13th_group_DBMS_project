@@ -23,6 +23,7 @@ fptree的实现源码见Programming-FPTree目录下的src和include目录，系�
 
 ### micro-log
 - 在分裂和删除叶子节点的时候提供micro-log机制，提供故障自动恢复功能
+- 修改叶子节点时只持久化修改部分，大大提高了FPTree的性能
 - 目前只提供单线程版本
 - google_test测试的makefile没改，无法使用
 
@@ -88,6 +89,9 @@ make
 sudo ./bin/utility_test
 sudo ./bin/fptree_test
 ```
+
+## FPTree使用
+详见[FPTree使用示例](FPTree使用示例.md)
 
 ## 完成进度
 
