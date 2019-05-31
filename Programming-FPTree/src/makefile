@@ -102,7 +102,8 @@ install:
 	@sudo cp -r ../include/utility /usr/include
 
 check:
-	@$(CXX) $(CXXFLAGS) -I$(HEADER_DIR) -o ./tools/check check.cpp -lpmem
-	@./tools/check.sh
-	@./tools/check
+	@$(CXX) $(CXXFLAGS) -I$(HEADER_DIR) -o ../tools/check check.cpp -lpmem
+	@sudo chmod +x ../tools/check.sh
+	@sudo ../tools/check.sh
+	@sudo ../tools/check
 
