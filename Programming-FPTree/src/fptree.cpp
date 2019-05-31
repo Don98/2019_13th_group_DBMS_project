@@ -550,10 +550,6 @@ void InnerNode::mergeRight(InnerNode* const& rightBro, const Key& k) {
 // remove a children from the current node, used by remove func
 void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
     // index out of bound
-    bool flag = this->TLock->ifWLock() | this->TLock->ifRLock();
-    if(!flag)
-        this->TLock->write_lock();
-
     if (keyIdx < 0 || keyIdx >= this->nKeys || childIdx < 0 || childIdx >= nChild) {
         printf("error: InnerNode removeChild with index out of bound\n");
         return;
@@ -565,8 +561,6 @@ void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
     for (int i = childIdx; i < nChild - 1; i++) {
         this->childrens[i] = this->childrens[i + 1];
     }
-    if(!flag)
-        this->TLock->write_rele();
     this->nChild--;
 }
 
