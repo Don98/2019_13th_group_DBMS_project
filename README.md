@@ -14,7 +14,7 @@ fptree的实现源码见Programming-FPTree目录下的src和include目录，系�
 - **数据存储位置默认为/mnt/mem，如果需要修改请进入utility.h文件中修改DATA_DIR**
 - 确保数据存储的位置是持续性内存
 
-更多详细内容请参考[注意事项详细版本](./注意事项详细版本.md)
+更多详细内容请参考[注意事项详细版本](./准备工作.md)
 
 ## FPTree 编译与安装
 
