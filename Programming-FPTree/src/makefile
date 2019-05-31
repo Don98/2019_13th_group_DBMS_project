@@ -93,18 +93,16 @@ install:
 	$(CXX) $(CXXFLAGS) -fpic -c utility.cpp -I$(HEADER_DIR) -o utility.o
 	$(CC) $(CFLAGS) -fpic -c clhash.c -I$(HEADER_DIR) -g -o clhash.o
 	$(CXX) $(CXXFLAGS) -shared -o $(LIB)/libfptree.so fptree.o p_allocator.o utility.o clhash.o
-	
 	@ar crv $(LIB)/libfptree.a $(LIB)/$(FPTREE) $(LIB)/$(PALLOCATOR) $(LIB)/$(UTILITY) $(LIB)/$(CLHASH)
-	
-	@sudo cp -r ../include/fptree /usr/include/
-	@sudo cp -r ../include/utility /usr/include/
+	@sudo cp $(LIB)/libfptree.a /usr/local/lib64/libfptree.a
 	@sudo cp $(LIB)/libfptree.so /usr/lib
-	@rm *.o $(LIB)/libfptree.so
+	@rm *.o
 	@sudo ldconfig
+	@sudo cp -r ../include/fptree /usr/include
+	@sudo cp -r ../include/utility /usr/include
 
 check:
 	@$(CXX) $(CXXFLAGS) -I$(HEADER_DIR) -o ./tools/check check.cpp -lpmem
 	@./tools/check.sh
 	@./tools/check
-	
 
