@@ -16,16 +16,17 @@ git clone https://github.com/Don98/2019_13th_group_DBMS_project.git
 
 ### 编译安装
 ```
-
 cd 2019_13th_group_DBMS_project/Programming-FPTree/src
 git fetch && git checkout final && git pull 
-make install                                          # 生成动态链接库以及静态链接库
+# 生成动态链接库以及静态链接库
+make install                                         
 ```
 ## 检测
 ```
-make check                                            # 检测utility.h中定义的DATA_DIR是否为持续性内存
-                                                      # 检测是否存在需要的libpmem库
-                                                      # 检测动态链接库是否生成并生效
+# 检测utility.h中定义的DATA_DIR是否为持续性内存
+# 检测是否存在需要的libpmem库
+# 检测动态链接库是否生成并生效
+make check                                            
 ```
 ### 性能测试
 测试前注意将/mnt/mem目录设为pmem目录路径
