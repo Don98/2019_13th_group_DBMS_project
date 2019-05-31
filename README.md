@@ -6,7 +6,6 @@ leveldb是google的一个键值存储系统，github仓库见https://github.com/
 
 FPTree是Oukid提出的一种适用于SCM(Storage Class Memory)的一类新型的B树，详见前期工作与论文阅读总结文件夹下的Oukid_FPTree.pdf论文。
 
-## FPTreeDB键值存储系统
 fptree的实现源码见Programming-FPTree目录下的src和include目录，系统的设计见[Programming-FPTree目录下的READMD](./Programming-FPTree/README.md)，更为详细的代码说明见[Programming-FPTree目录下的函数实现](./Programming-FPTree/函数实现.md)
 
 ## FPTree 编译与安装
