@@ -36,7 +36,8 @@ public:
 
     virtual void printNode() = 0;
     virtual int getDegree() = 0;
-    virtual bool isSafe() = 0;
+    virtual bool isISafe() = 0;
+    virtual bool isDSafe() = 0;
     virtual RSLock* getRSLock() = 0;
         /*
     lock : read wrt mutex wrt_mutex
@@ -115,7 +116,8 @@ public:
     bool     getIsRoot() { return this->isRoot; }
     void     printNode();
     int      getDegree(){return this->degree;};
-    bool     isSafe(){return this->nKeys < this->degree * 2;};
+    bool     isISafe(){return this->nKeys < this->degree * 2;};
+    bool     isDSafe(){return this->nKeys > this->degree;};
     RSLock*   getRSLock(){return this->TLock;};
 };
 
@@ -172,7 +174,9 @@ public:
     Value       getValue(const int& idx);
     PPointer    getPPointer();
     int         getDegree(){return this->degree;};
-    bool        isSafe(){return this->n < this->degree * 2 - 1;};
+    bool        isISafe(){return this->n < this->degree * 2 - 1 ;};
+    bool        isDSafe(){return this->n > 1 ;};
+    // bool        isDSafe(){return this->n > this->degree + 1 ;};
 
     RSLock*      getRSLock(){return this->TLock;};
     // interface with NVM

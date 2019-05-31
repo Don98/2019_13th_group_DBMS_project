@@ -82,7 +82,7 @@ void InnerNode::insertNonFull(const Key& k, Node* const& node) {
 KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     KeyNode* newChild = NULL;
 
-    // cout << v << " 0 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
+    // cout << v << " 0 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isISafe() << endl;
     // 1.insertion to the first leaf(only one leaf)
     if (this->isRoot && this->nKeys == 0) {
         // if nChild is 0, there is no leaf node, create one and insert the key
@@ -118,10 +118,10 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     // find the position to insert kv, and call the child insert it
 
 
-    // cout << v << " 1 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
+    // cout << v << " 1 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isISafe() << endl;
     int pos = findIndex(k);
 
-    if(this->isSafe())
+    if(this->isISafe())
     {
         InnerNode * tmp = parent;
         while(tmp != NULL && tmp->TLock->ifWLock()){
@@ -131,12 +131,12 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     }
     // cout << "write" << endl;
     this->TLock->write_lock();
-    // cout << v << " 2 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
+    // cout << v << " 2 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isISafe() << endl;
     // cout << "parent : " <<  this->getRSLock()->ifWLock() << " " << this->getRSLock()->getGiveUp() << endl;
     // cout << "num : " << this->find(123) << endl;
     newChild = this->childrens[pos]->insert(k, v);
 
-    // cout << v << " 3 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
+    // cout << v << " 3 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isISafe() << endl;
     // cout << v << endl;
     // if(newChild != NULL)
     //     cout << 456 << endl;
@@ -183,7 +183,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
         this->TLock->write_rele();
     }
 
-    // cout << v << " 4 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isSafe() << endl;
+    // cout << v << " 4 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isISafe() << endl;
     // if(this->TLock->get_write() != 0)
     //     cout << "-----------------------------------------" << this->TLock->get_write() << " " << k << " " << v << "-----------------------------------------" << endl;
     return newChild;
@@ -290,6 +290,8 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
     bool ifRemove = false;
     // only have one leaf
     if (this->isRoot && this->nKeys == 0) {
+        this->TLock->write_lock();
+        this->TLock->setGiveUp(false);
         if (this->nChild > 0) {
             ifRemove = this->childrens[0]->remove(k, 0, this, ifDelete);
             if (ifDelete) {
@@ -297,17 +299,30 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
                 this->nChild--;
             }
         }
+        this->TLock->setGiveUp(true);
+        this->TLock->write_rele();
         return ifRemove;
     }
-
     // recursive remove
     int pos = this->findIndex(k);
-    ifRemove = this->childrens[pos]->remove(k, pos, this, ifDelete);
 
+    if(this->isDSafe()){
+        InnerNode * tmp = this->parent;
+        while(tmp != NULL && tmp->TLock->ifWLock()){
+            tmp->TLock->write_rele();
+            tmp = tmp->parent;
+        }
+    }
+    
+    this->TLock->write_lock();
+    ifRemove = this->childrens[pos]->remove(k, pos, this, ifDelete);
+    
     // if the needn't to delete the child, return the result whether
     // remove key is success
-    if (!ifDelete) return ifRemove;
-
+    if (!ifDelete){
+        // this->TLock->write_rele();
+        return ifRemove;   
+    }
     // this occurs when the root has 2 leaf and the root and its two child
     // has merge, when merge the root and two child, the root has 2d keys and
     // 2d + 1 childs, but we put the nChild as 0 to indicate that the root has
@@ -316,6 +331,7 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
     if (this->isRoot && this->nChild == 0) {
         this->nChild = this->nKeys + 1;
         delete this->childrens[this->nChild];
+        this->TLock->write_rele();
         return ifRemove;
     }
 
@@ -335,7 +351,10 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
 
     else {
         // if is root, it is allow that the keys is less than degree, return
-        if (this->isRoot) return ifRemove;
+        if (this->isRoot) {    
+            this->TLock->write_rele();
+            return ifRemove;
+        }
         InnerNode* leftBro = NULL;
         InnerNode* rightBro = NULL;
         // get the brother of this
@@ -371,7 +390,7 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
             }
         }
     }
-
+    this->TLock->write_rele();
     return ifRemove;
 }
 
@@ -470,7 +489,7 @@ void InnerNode::redistributeLeft(const int& index, InnerNode* const& leftBro, In
     }
     for (int i = 0; i < moveKeys; i++) {
         this->childrens[moveKeys - i - 1] = leftBro->childrens[leftBro->nChild - 1 - i];
-        leftBro->childrens[leftBro->nChild - 1 - i]->parent = this;
+        this->childrens[moveKeys - i - 1]->parent = this;
     }
     this->nKeys += moveKeys;
     this->nChild += moveKeys;
@@ -491,7 +510,7 @@ void InnerNode::redistributeRight(const int& index, InnerNode* const& rightBro, 
     }
     for (int i = 0; i < moveKeys; i++) {
         this->childrens[nChild + i] = rightBro->childrens[i];
-        rightBro->childrens[i]->parent = this;
+        this->childrens[nChild + i]->parent = this;
     }
     this->nKeys += moveKeys;
     this->nChild += moveKeys;
@@ -535,8 +554,8 @@ void InnerNode::mergeRight(InnerNode* const& rightBro, const Key& k) {
         rightBro->childrens[i + this->nChild] = rightBro->childrens[i];
     }
     for (int i = 0; i < this->nChild; i++) {
-        this->childrens[i]->parent = rightBro;
         rightBro->childrens[i] = this->childrens[i];
+        this->childrens[i]->parent = rightBro;
     }
     rightBro->nKeys += (this->nKeys + 1);
     rightBro->nChild += this->nChild;
@@ -545,6 +564,10 @@ void InnerNode::mergeRight(InnerNode* const& rightBro, const Key& k) {
 // remove a children from the current node, used by remove func
 void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
     // index out of bound
+    bool flag = this->TLock->ifWLock() | this->TLock->ifRLock();
+    if(!flag)
+        this->TLock->write_lock();
+
     if (keyIdx < 0 || keyIdx >= this->nKeys || childIdx < 0 || childIdx >= nChild) {
         printf("error: InnerNode removeChild with index out of bound\n");
         return;
@@ -556,6 +579,8 @@ void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
     for (int i = childIdx; i < nChild - 1; i++) {
         this->childrens[i] = this->childrens[i + 1];
     }
+    if(!flag)
+        this->TLock->write_rele();
     this->nChild--;
 }
 
@@ -692,13 +717,13 @@ LeafNode::~LeafNode() {
 
 // insert an entry into the leaf, need to split it if it is full
 KeyNode* LeafNode::insert(const Key& k, const Value& v) {
-    // cout << v << " writerCount : " << this->TLock->get_write() << " isLock : " << this->getRSLock()->ifWLock() << " parent:isSafe : " << this->isSafe() << endl;
-    // cout << "LeafNode isSafe : " << this->isSafe() << " this->n : " << this->n  << " degree * 2 " << this->degree * 2<< endl;
+    // cout << v << " writerCount : " << this->TLock->get_write() << " isLock : " << this->getRSLock()->ifWLock() << " parent:isSafe : " << this->isISafe() << endl;
+    // cout << "LeafNode isSafe : " << this->isISafe() << " this->n : " << this->n  << " degree * 2 " << this->degree * 2<< endl;
     // if(v == 3370){
     //     cout << "true or not : " << (this->parent != NULL) << " " <<  this->parent->getRSLock()->ifWLock() << " " << this->parent->getRSLock()->getGiveUp() << endl;
     //     cout << this->parent->find(123) << endl;
     // }
-    if(this->isSafe()){
+    if(this->isISafe()){
         InnerNode * tmp = this->parent;
         while(tmp != NULL && tmp->getRSLock()->ifWLock() && tmp->getRSLock()->getGiveUp()){
             // cout << "123" << endl;
@@ -837,6 +862,16 @@ PPointer LeafNode::getPPointer() {
 // if it has no entry after removement return TRUE to indicate outer func to delete this leaf.
 // need to call PAllocator to set this leaf free and reuse it
 bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, bool &ifDelete) {
+    if(this->isDSafe()){
+        InnerNode * tmp = this->parent;
+        while(tmp != NULL && tmp->TLock->ifWLock() && tmp->TLock->getGiveUp()){
+            tmp->TLock->write_rele();
+            tmp = tmp->parent;
+        }
+    }
+
+    this->TLock->write_lock();
+
     bool ifRemove = false;
 
     // find the position of the move key
@@ -873,6 +908,7 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
             ifDelete = true;
         }
     }
+    this->TLock->write_rele();
     return ifRemove;
 }
 
