@@ -38,6 +38,7 @@ TEST(CFPTreeTest, MultipFind) {
     }
     for(int i = 0;i < thread_num;i++)
         all[i].join();
+    delete tree;
     removeFile();
 }
 void update_one(FPTree* tree , int start){
@@ -64,11 +65,12 @@ TEST(CFPTreeTest, MultipUpdate) {
         // cout << tree->find(i) << " " << i * 10 << endl;
         EXPECT_EQ(tree->find(i),i * 10 + 1);
     } 
+    delete tree;
     removeFile();
 }
 
 void insert_one(FPTree* tree , int start){
-    for (int i = start * 10 ; i < start * 10 + 10 ; i++) {
+    for (int i = start * 100 ; i < start * 100 + 100 ; i++) {
         // cout << i << "\n";
         tree->insert(i, i * 10);
     }
@@ -76,7 +78,7 @@ void insert_one(FPTree* tree , int start){
 TEST(CFPTreeTest, MultipInsert) {
     FPTree* tree = new FPTree(2);
 
-    const int thread_num = 5;
+    const int thread_num = 2;
 
 	thread all[thread_num];
 	for(int i = 0;i < thread_num; i++)
@@ -91,14 +93,15 @@ TEST(CFPTreeTest, MultipInsert) {
         // cout << tree->find(i) << " " << i * 10 << endl;
         EXPECT_EQ(tree->find(i),i * 10);
     } 
-   removeFile();    
+    delete tree;
+    removeFile();    
 }
 
 
 void remove_one(FPTree* tree , int start){
     int i = start * LEAF_DEGREE;
-    for (int j = 0; j < LEAF_DEGREE; i++, j++) {
-        cout << i << "\n";
+    for (int j = 0;  j < LEAF_DEGREE; i++, j++) {
+        // cout << i << endl;
         tree->remove(i);
     }
     tree->remove(i);
@@ -106,7 +109,7 @@ void remove_one(FPTree* tree , int start){
 TEST(CFPTreeTest, MultipRemove) {
     FPTree* tree = new FPTree(2);
 
-    const int thread_num = 5;
+    const int thread_num = 2;
 
     for (int i = 0 ; i < thread_num * LEAF_DEGREE ; i++)
         tree->insert(i, i * 10);
@@ -117,7 +120,6 @@ TEST(CFPTreeTest, MultipRemove) {
         all[i] = thread(remove_one,tree,i);
     }
     for(int i = 0;i < thread_num;i++){
-        // cout << i << endl;
         all[i].join();
     }
     // tree->printTree();
@@ -129,5 +131,6 @@ TEST(CFPTreeTest, MultipRemove) {
         EXPECT_EQ(pa->ifLeafUsed(p), false);
         EXPECT_EQ(pa->ifLeafFree(p), true);
     }
+    delete tree;    
     removeFile();    
 }
