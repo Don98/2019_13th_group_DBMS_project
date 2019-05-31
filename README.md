@@ -26,6 +26,7 @@ fptree的实现源码见Programming-FPTree目录下的src和include目录，系�
 - 修改叶子节点时只持久化修改部分，大大提高了FPTree的性能
 - 目前只提供单线程版本
 - google_test测试的makefile没改，无法使用
+- 详细实现说明见[micro-log机制与fptree数据可靠性说明](micro-log机制与fptree数据可靠性说明.md)
 
 ### CFPTree
 - 实现了多线程同步的CFPTree
@@ -52,9 +53,9 @@ git clone https://github.com/Don98/2019_13th_group_DBMS_project.git
 安装后会在Programming-FPTree/src/lib生成libfptree.a和libfptree.so文件，并将fptree的头文件和动态链接文件放入用户库中，安装命令为：
 ```
 cd 2019_13th_group_DBMS_project/Programming-FPTree/src
-git fetch && git checkout final && git pull 
+git fetch && git checkout final && git pull
 # 生成动态链接库以及静态链接库
-make install                                         
+make install
 ```
 
 ### 检测
@@ -63,7 +64,7 @@ make install
 # 检测utility.h中定义的DATA_DIR是否为持续性内存
 # 检测是否存在需要的libpmem库
 # 检测动态链接库是否生成并生效
-make check                                            
+make check
 ```
 
 ## FPTree测试
@@ -89,7 +90,6 @@ sudo make testfptree
 make
 sudo ./bin/utility_test
 sudo ./bin/fptree_test
-sudo ./bin/CFPTree_test
 ```
 
 ## FPTree使用
