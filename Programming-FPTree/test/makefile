@@ -68,7 +68,7 @@ clean :
 cleano :
 	rm -f $(GTEST_LIBS) *.o
 
-cleand : 
+cleand :
 	rm -f ../data/*
 
 # Builds gtest.a and gtest_main.a.
@@ -98,7 +98,7 @@ libgtest_main.a : gtest-all.o gtest_main.o
 # ===============================TODO: all below=================================
 fptree.o : $(USER_HEADER_DIR)/fptree/fptree.h $(USER_DIR)/fptree.cpp
 	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/fptree.cpp -I $(USER_HEADER_DIR) -o $@
-	
+
 utility.o : $(USER_DIR)/utility.cpp $(USER_HEADER_DIR)/utility/utility.h $(USER_HEADER_DIR)/utility/clhash.h
 	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/utility.cpp -I $(USER_HEADER_DIR) -o $@
 
@@ -106,7 +106,10 @@ p_allocator.o : $(USER_HEADER_DIR)/utility/p_allocator.h $(USER_DIR)/p_allocator
 	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/p_allocator.cpp -I $(USER_HEADER_DIR) -o $@
 
 clhash.o : $(USER_HEADER_DIR)/utility/clhash.h $(USER_DIR)/clhash.c
-	$(CC) $(CFLAGS) -c $(USER_DIR)/clhash.c -I $(USER_HEADER_DIR) 
+	$(CC) $(CFLAGS) -c $(USER_DIR)/clhash.c -I $(USER_HEADER_DIR)
+
+microlog.o : $(USER_HEADER_DIR)/utility/microlog.h $(USER_DIR)/microlog.cpp
+	$(CXX) $(CXXFLAGS) -c $(USER_DIR)/microlog.cpp -I $(USER_HEADER_DIR) -o $@
 
 # utility test
 $(UTILITY_TEST) :  clhash.o utility.o p_allocator.o utility_test.o
@@ -116,9 +119,9 @@ utility_test.o : utility_test.cpp $(USER_HEADER_DIR)/utility/p_allocator.h
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c utility_test.cpp -I $(USER_HEADER_DIR) -o $@
 
 # fptree test
-$(FPTREE_TEST) : clhash.o utility.o p_allocator.o fptree.o fptree_test.o
+$(FPTREE_TEST) : clhash.o microlog.o utility.o p_allocator.o fptree.o fptree_test.o
 	$(CXX) $(CPPFLAGS) -L. -lgtest -lgtest_main $(CXXFLAGS) $^ -lpmem -o $@
-	
+
 fptree_test.o : fptree_test.cpp $(USER_HEADER_DIR)/fptree/fptree.h
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c fptree_test.cpp -I $(USER_HEADER_DIR) -o $@
 
