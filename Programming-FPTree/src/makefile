@@ -9,6 +9,8 @@ CXXFLAGS = -std=c++11
 
 CFLAGS = -fPIC -std=c99 -O3 -msse4.2 -mpclmul -march=native -funroll-loops -Wstrict-overflow -Wstrict-aliasing -Wall -Wextra -pedantic -Wshadow
 
+LIB = lib
+
 BIN = bin
 
 MAIN = main
@@ -29,7 +31,7 @@ LEVELDB_HEADER_DIR = ../leveldb/include
 
 LEVELDB_LIB = ../leveldb/build/libleveldb.a
 
-OBJECTS = $(BIN)/$(FPTREE) $(BIN)/$(PALLOCATOR) $(BIN)/$(UTILITY) $(BIN)/$(CLHASH)
+OBJECTS = $(LIB)/$(FPTREE) $(LIB)/$(PALLOCATOR) $(LIB)/$(UTILITY) $(LIB)/$(CLHASH)
 
 ALL := $(LYCSB) $(YCSB) $(MAIN) $(FPTREE) $(UTILITY) $(PALLOCATOR) $(CLHASH) $(BIN)
 
@@ -42,20 +44,20 @@ $(BIN)/main.o: main.cpp
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -c $< -I$(HEADER_DIR) -o $@
 
-$(BIN)/$(FPTREE): fptree.cpp $(FPTREE_HEADER_DIR)/fptree.h
-	@mkdir -p bin
+$(LIB)/$(FPTREE): fptree.cpp $(FPTREE_HEADER_DIR)/fptree.h
+	@mkdir -p lib
 	$(CXX) $(CXXFLAGS) -c $< -I$(HEADER_DIR) -o $@
 
-$(BIN)/$(PALLOCATOR): p_allocator.cpp $(UTILITY_HEADER_DIR)/p_allocator.h
-	@mkdir -p bin
+$(LIB)/$(PALLOCATOR): p_allocator.cpp $(UTILITY_HEADER_DIR)/p_allocator.h
+	@mkdir -p lib
 	$(CXX) $(CXXFLAGS) -c $< -I$(HEADER_DIR) -o $@
 
-$(BIN)/$(UTILITY): utility.cpp $(UTILITY_HEADER_DIR)/utility.h
-	@mkdir -p bin
+$(LIB)/$(UTILITY): utility.cpp $(UTILITY_HEADER_DIR)/utility.h
+	@mkdir -p lib
 	$(CXX) $(CXXFLAGS) -c $< -I$(HEADER_DIR) -o $@
 
-$(BIN)/$(CLHASH) : clhash.c $(UTILITY_HEADER_DIR)/clhash.h
-	@mkdir -p bin
+$(LIB)/$(CLHASH) : clhash.c $(UTILITY_HEADER_DIR)/clhash.h
+	@mkdir -p lib
 	$(CC) $(CFLAGS) -c clhash.c -I$(HEADER_DIR) -g -o $@
 
 $(BIN)/$(LYCSB): lycsb.cpp
@@ -67,12 +69,7 @@ $(BIN)/$(YCSB): ycsb.cpp $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -I $(HEADER_DIR) -I $(LEVELDB_HEADER_DIR) $^ $(LEVELDB_LIB) -lpthread -lpmem -o $@
 
 
-.PHONY: $(BIN)
-$(BIN):
-	@mkdir -p bin
-
-.PHONY: all testleveldb testfptree
-all : $(ALL)
+.PHONY: testleveldb testfptree check install
 
 testleveldb: $(BIN)/$(LYCSB)
 	@rm -rf /tmp/testdb
@@ -83,8 +80,31 @@ testfptree: $(BIN)/$(YCSB)
 	@sudo rm -rf /mnt/mem/*
 	@sudo $(BIN)/$(YCSB)
 
-clean :
-	rm -rf *.o ./bin/* ../data/*
+clean:
+	rm -rf *.o ../data/* ./bin ./lib check
 
-cleand :
+cleand:
 	rm -rf ../data/*
+
+install:
+	@mkdir -p $(LIB)
+	$(CXX) $(CXXFLAGS) -fpic -c fptree.cpp -I$(HEADER_DIR) -o fptree.o
+	$(CXX) $(CXXFLAGS) -fpic -c p_allocator.cpp -I$(HEADER_DIR) -o p_allocator.o
+	$(CXX) $(CXXFLAGS) -fpic -c utility.cpp -I$(HEADER_DIR) -o utility.o
+	$(CC) $(CFLAGS) -fpic -c clhash.c -I$(HEADER_DIR) -g -o clhash.o
+	$(CXX) $(CXXFLAGS) -shared -o $(LIB)/libfptree.so fptree.o p_allocator.o utility.o clhash.o
+	
+	@ar crv $(LIB)/libfptree.a $(LIB)/$(FPTREE) $(LIB)/$(PALLOCATOR) $(LIB)/$(UTILITY) $(LIB)/$(CLHASH)
+	
+	@sudo cp -r ../include/fptree /usr/include/
+	@sudo cp -r ../include/utility /usr/include/
+	@sudo cp $(LIB)/libfptree.so /usr/lib
+	@rm *.o $(LIB)/libfptree.so
+	@sudo ldconfig
+
+check:
+	@$(CXX) $(CXXFLAGS) -I$(HEADER_DIR) -o ./tools/check check.cpp -lpmem
+	@./tools/check.sh
+	@./tools/check
+	
+
