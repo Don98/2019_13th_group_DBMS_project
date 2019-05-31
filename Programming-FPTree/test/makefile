@@ -43,7 +43,9 @@ UTILITY_TEST = ./bin/utility_test
 
 FPTREE_TEST = ./bin/fptree_test
 
-TESTS = $(UTILITY_TEST) $(FPTREE_TEST)
+CFPTREE_TEST = ./bin/CFPTree_test
+
+TESTS = $(UTILITY_TEST) $(FPTREE_TEST) $(CFPTREE_TEST)
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -121,6 +123,13 @@ $(FPTREE_TEST) : clhash.o utility.o p_allocator.o fptree.o fptree_test.o
 	
 fptree_test.o : fptree_test.cpp $(USER_HEADER_DIR)/fptree/fptree.h
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c fptree_test.cpp -I $(USER_HEADER_DIR) -o $@
+
+# cfptree test
+$(CFPTREE_TEST) : clhash.o utility.o p_allocator.o fptree.o CFPTree_test.o
+	$(CXX) $(CPPFLAGS) -L. -lgtest -lgtest_main $(CXXFLAGS) $^ -lpmem -o $@
+	
+CFPTree_test.o : CFPTree_test.cpp $(USER_HEADER_DIR)/fptree/fptree.h 
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c CFPTree_test.cpp -I $(USER_HEADER_DIR) -o $@
 
 $(BIN):
 	mkdir -p bin
