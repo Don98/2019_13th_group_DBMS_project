@@ -88,10 +88,10 @@ cleand:
 
 install:
 	@mkdir -p $(LIB)
-	$(CXX) $(CXXFLAGS) -fpic -c fptree.cpp -I$(HEADER_DIR) -o fptree.o
-	$(CXX) $(CXXFLAGS) -fpic -c p_allocator.cpp -I$(HEADER_DIR) -o p_allocator.o
-	$(CXX) $(CXXFLAGS) -fpic -c utility.cpp -I$(HEADER_DIR) -o utility.o
-	$(CC) $(CFLAGS) -fpic -c clhash.c -I$(HEADER_DIR) -g -o clhash.o
+	$(CXX) $(CXXFLAGS) -fPIC -c fptree.cpp -I$(HEADER_DIR) -o fptree.o
+	$(CXX) $(CXXFLAGS) -fPIC -c p_allocator.cpp -I$(HEADER_DIR) -o p_allocator.o
+	$(CXX) $(CXXFLAGS) -fPIC -c utility.cpp -I$(HEADER_DIR) -o utility.o
+	$(CC) $(CFLAGS) -fPIC -c clhash.c -I$(HEADER_DIR) -g -o clhash.o
 	$(CXX) $(CXXFLAGS) -shared -o $(LIB)/libfptree.so fptree.o p_allocator.o utility.o clhash.o
 	@ar crv $(LIB)/libfptree.a $(LIB)/$(FPTREE) $(LIB)/$(PALLOCATOR) $(LIB)/$(UTILITY) $(LIB)/$(CLHASH)
 	@sudo cp $(LIB)/libfptree.a /usr/local/lib64/libfptree.a
