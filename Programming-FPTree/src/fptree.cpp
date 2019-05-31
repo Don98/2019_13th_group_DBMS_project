@@ -31,18 +31,12 @@ InnerNode::~InnerNode() {
 
 // binary search the first key in the innernode larger than input key
 int InnerNode::findIndex(const Key& k) {
-    bool flag = this->TLock->ifWLock() | this->TLock->ifRLock();
-    if(!flag)
-        this->TLock->read_lock();
-
     int left = 0, right = this->nKeys - 1, mid;
     while (left <= right) {
         mid = (left + right) / 2;
         if (this->keys[mid] > k) right = mid - 1;
         else left = mid + 1;
     }
-    if(!flag)
-        this->TLock->read_rele();
     return left;
 }
 
@@ -118,8 +112,7 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
     // find the position to insert kv, and call the child insert it
 
 
-    // cout << v << " 1 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isISafe() << endl;
-    int pos = findIndex(k);
+    this->TLock->write_lock();
 
     if(this->isISafe())
     {
@@ -129,17 +122,10 @@ KeyNode* InnerNode::insert(const Key& k, const Value& v) {
             tmp = tmp->parent;
         }
     }
-    // cout << "write" << endl;
-    this->TLock->write_lock();
-    // cout << v << " 2 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isISafe() << endl;
-    // cout << "parent : " <<  this->getRSLock()->ifWLock() << " " << this->getRSLock()->getGiveUp() << endl;
-    // cout << "num : " << this->find(123) << endl;
+
+    int pos = findIndex(k);
     newChild = this->childrens[pos]->insert(k, v);
 
-    // cout << v << " 3 isRoot : " << this->isRoot << " writerCount : " << this->TLock->get_write() << " this->isSafe : " << this->isISafe() << endl;
-    // cout << v << endl;
-    // if(newChild != NULL)
-    //     cout << 456 << endl;
     // if the newChild return by child is not NULL, need to insert
     // newChild's key and node to this
     if (newChild != NULL) {
@@ -304,7 +290,7 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
         return ifRemove;
     }
     // recursive remove
-    int pos = this->findIndex(k);
+    this->TLock->write_lock();
 
     if(this->isDSafe()){
         InnerNode * tmp = this->parent;
@@ -314,7 +300,7 @@ bool InnerNode::remove(const Key& k, const int& index, InnerNode* const& parent,
         }
     }
     
-    this->TLock->write_lock();
+    int pos = this->findIndex(k);
     ifRemove = this->childrens[pos]->remove(k, pos, this, ifDelete);
     
     // if the needn't to delete the child, return the result whether
@@ -586,6 +572,11 @@ void InnerNode::removeChild(const int& keyIdx, const int& childIdx) {
 
 // update the target entry, return true if the update succeed.
 bool InnerNode::update(const Key& k, const Value& v) {
+    this->TLock->write_lock();
+    if(this->parent != NULL){
+        this->parent->TLock->write_rele();
+    }
+
     int pos = findIndex(k);
     if (this->childrens[pos] != NULL) {
         return this->childrens[pos]->update(k, v);
@@ -595,10 +586,16 @@ bool InnerNode::update(const Key& k, const Value& v) {
 
 // find the target value with the search key, return MAX_VALUE if it fails.
 Value InnerNode::find(const Key& k) {
+    this->TLock->read_lock();
+    if(this->parent != NULL){
+        this->parent->TLock->read_rele();
+    }
+
     int pos = findIndex(k);
     if (this->childrens[pos] != NULL) {
         return this->childrens[pos]->find(k);
     }
+    cout << "readCount : " << this->TLock->get_write() << endl;
     return MAX_VALUE;
 }
 
@@ -915,30 +912,42 @@ bool LeafNode::remove(const Key& k, const int& index, InnerNode* const& parent, 
 // update the target entry
 // return TRUE if the update succeed
 bool LeafNode::update(const Key& k, const Value& v) {
+    this->TLock->write_lock();
+    if(this->parent != NULL){
+        this->parent->TLock->write_rele();
+    }
     bool ifUpdate = false;
     Byte hash = keyHash(k);
     for (int i = 0; i < this->degree * 2; ++ i) {
         if (getBit(i) && hash == this->fingerprints[i]) {
             if (k == this->kv[i].k) {
                 this->kv[i].v = v;
+                this->persist();
                 ifUpdate = true;
                 break;
             }
         }
     }
+    this->TLock->write_rele();
     return ifUpdate;
 }
 
 // if the entry can not be found, return the max Value
 Value LeafNode::find(const Key& k) {
+    this->TLock->read_lock();
+    if(this->parent != NULL){
+        this->parent->TLock->read_rele();
+    }
     Byte hash = keyHash(k);
     for (int i = 0; i < this->degree * 2; ++ i) {
         if (getBit(i) && hash == this->fingerprints[i]) {
             if (k == this->kv[i].k) {
+                this->TLock->read_rele();
                 return this->kv[i].v;
             }
         }
     }
+    this->TLock->read_rele();
     return MAX_VALUE;
 }
 
