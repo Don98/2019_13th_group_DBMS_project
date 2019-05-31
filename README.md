@@ -8,39 +8,57 @@ FPTree是Oukid提出的一种适用于SCM(Storage Class Memory)的一类新型�
 
 fptree的实现源码见Programming-FPTree目录下的src和include目录，系统的设计见[Programming-FPTree目录下的READMD](./Programming-FPTree/README.md)，更为详细的代码说明见[Programming-FPTree目录下的函数实现](./Programming-FPTree/函数实现.md)
 
+## 注意事项
+
+- 确保已经安装了pmdk
+- **数据存储位置默认为/mnt/mem，如果需要修改请进入utility.h文件中修改DATA_DIR**
+- 确保数据存储的位置是持续性内存
+
+更多详细内容请参考[注意事项详细版本](./注意事项详细版本.md)
+
 ## FPTree 编译与安装
+
 ### 下载
+
 ```
 git clone https://github.com/Don98/2019_13th_group_DBMS_project.git
 ```
 
 ### 编译安装
+
 ```
 cd 2019_13th_group_DBMS_project/Programming-FPTree/src
 git fetch && git checkout final && git pull 
 # 生成动态链接库以及静态链接库
 make install                                         
 ```
+
 ## 检测
+
 ```
 # 检测utility.h中定义的DATA_DIR是否为持续性内存
 # 检测是否存在需要的libpmem库
 # 检测动态链接库是否生成并生效
 make check                                            
 ```
+
 ### 性能测试
+
 测试前注意将/mnt/mem目录设为pmem目录路径
 
 具体说明见[fptree性能测试](fptree性能测试.md)
 先进入Programming-FPTree/src目录，测试命令为
+
 ```
 sudo make testfptree
 ```
 
 ### google test 测试
+
 测试前注意将/mnt/mem目录设为pmem目录路径
 
 先进入Programming-FPTree/src目录，测试命令为(注意sudo)
+
 ```
 make
 sudo ./bin/utility_test
