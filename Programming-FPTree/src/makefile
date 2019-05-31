@@ -86,7 +86,7 @@ clean:
 cleand:
 	rm -rf ../data/*
 
-install:
+install: $(OBJECTS)
 	@mkdir -p $(LIB)
 	$(CXX) $(CXXFLAGS) -fPIC -c fptree.cpp -I$(HEADER_DIR) -o fptree.o
 	$(CXX) $(CXXFLAGS) -fPIC -c p_allocator.cpp -I$(HEADER_DIR) -o p_allocator.o
