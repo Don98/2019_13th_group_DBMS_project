@@ -29,6 +29,7 @@ fptree的实现源码见Programming-FPTree目录下的src和include目录，系�
 
 ### CFPTree
 - 实现了多线程同步的CFPTree
+- 详细特性[点击](https://github.com/Don98/2019_13th_group_DBMS_project/blob/CFPTree/Programming-FPTree/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E6%A1%88%E8%A7%A3%E9%87%8A.md)
 
 ## 注意事项
 
@@ -88,6 +89,7 @@ sudo make testfptree
 make
 sudo ./bin/utility_test
 sudo ./bin/fptree_test
+sudo ./bin/CFPTree_test
 ```
 
 ## FPTree使用
